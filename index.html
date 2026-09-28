@@ -1,0 +1,2521 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TKA KKGK Relasi Wonosobo</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- KaTeX untuk Rumus Matematika -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- KUNCI PERBAIKAN 1: Paksa CDN mengirim format UMD (.min.js) secara spesifik -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; -webkit-font-smoothing: antialiased; }
+        .rich-text-content { white-space: pre-wrap; word-wrap: break-word; line-height: 1.6; }
+        .rich-text-content p { min-height: 1.5rem; margin-bottom: 0.5rem; }
+        .rich-text-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0; display: inline-block; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .rich-text-content [style*="text-align: left"], .rich-text-content [align="left"] { text-align: left !important; }
+        .rich-text-content [style*="text-align: center"], .rich-text-content [align="center"] { text-align: center !important; }
+        .rich-text-content [style*="text-align: right"], .rich-text-content [align="right"] { text-align: right !important; }
+        .rich-text-content [style*="text-align: justify"], .rich-text-content [align="justify"] { text-align: justify !important; }
+        .math-tex { font-size: 1.15em; font-weight: normal; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        @media print {
+            body, html { background: white !important; height: auto !important; }
+            nav, header, button, .print\:hidden { display: none !important; }
+            main { padding: 0 !important; overflow: visible !important; display: block !important; }
+            .print-container { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; }
+        }
+        .modal-overlay { background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
+        .prevent-select { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+
+        const SUPABASE_URL = 'https://xltrmoeabasrconlhijv.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_kzMgSC5JniUeJZGBGW1RIA_7aKyk0vh';
+        let supabase = null;
+
+        const Monitor = ({size=24, className=""}) => <i className={`fas fa-desktop ${className}`} style={{fontSize: size}}></i>;
+        const Key = ({size=14, className=""}) => <i className={`fas fa-key ${className}`} style={{fontSize: size}}></i>;
+        const User = ({size=24, className=""}) => <i className={`fas fa-user ${className}`} style={{fontSize: size}}></i>;
+        const Clock = ({size=24, className=""}) => <i className={`fas fa-clock ${className}`} style={{fontSize: size}}></i>;
+        const FileText = ({size=24, className=""}) => <i className={`fas fa-file-alt ${className}`} style={{fontSize: size}}></i>;
+        const CheckCircle = ({size=24, className=""}) => <i className={`fas fa-check-circle ${className}`} style={{fontSize: size}}></i>;
+        const AlertCircle = ({size=24, className=""}) => <i className={`fas fa-exclamation-circle ${className}`} style={{fontSize: size}}></i>;
+        const Cloud = ({size=24, className=""}) => <i className={`fas fa-cloud ${className}`} style={{fontSize: size}}></i>;
+        const LogOut = ({size=24, className=""}) => <i className={`fas fa-sign-out-alt ${className}`} style={{fontSize: size}}></i>;
+        const Settings = ({size=24, className=""}) => <i className={`fas fa-cog ${className}`} style={{fontSize: size}}></i>;
+        const LayoutDashboard = ({size=24, className=""}) => <i className={`fas fa-th-large ${className}`} style={{fontSize: size}}></i>;
+        const Database = ({size=24, className=""}) => <i className={`fas fa-database ${className}`} style={{fontSize: size}}></i>;
+        const CheckSquare = ({size=24, className=""}) => <i className={`fas fa-check-square ${className}`} style={{fontSize: size}}></i>;
+        const BarChart2 = ({size=24, className=""}) => <i className={`fas fa-chart-bar ${className}`} style={{fontSize: size}}></i>;
+        const Printer = ({size=24, className=""}) => <i className={`fas fa-print ${className}`} style={{fontSize: size}}></i>;
+        const Save = ({size=24, className=""}) => <i className={`fas fa-save ${className}`} style={{fontSize: size}}></i>;
+        const X = ({size=24, className=""}) => <i className={`fas fa-times ${className}`} style={{fontSize: size}}></i>;
+        const Edit = ({size=24, className=""}) => <i className={`fas fa-edit ${className}`} style={{fontSize: size}}></i>;
+        const Trash2 = ({size=24, className=""}) => <i className={`fas fa-trash-alt ${className}`} style={{fontSize: size}}></i>;
+        const Plus = ({size=24, className=""}) => <i className={`fas fa-plus ${className}`} style={{fontSize: size}}></i>;
+        const ImageIcon = ({size=24, className=""}) => <i className={`fas fa-image ${className}`} style={{fontSize: size}}></i>;
+        const ChevronLeft = ({size=24, className=""}) => <i className={`fas fa-chevron-left ${className}`} style={{fontSize: size}}></i>;
+        const Menu = ({size=24, className=""}) => <i className={`fas fa-bars ${className}`} style={{fontSize: size}}></i>;
+        const Calculator = ({size=24, className=""}) => <i className={`fas fa-calculator ${className}`} style={{fontSize: size}}></i>;
+        const Copy = ({size=24, className=""}) => <i className={`fas fa-copy ${className}`} style={{fontSize: size}}></i>;
+        const Eye = ({size=24, className=""}) => <i className={`fas fa-eye ${className}`} style={{fontSize: size}}></i>;
+        const EyeSlash = ({size=24, className=""}) => <i className={`fas fa-eye-slash ${className}`} style={{fontSize: size}}></i>;
+        const Upload = ({size=24, className=""}) => <i className={`fas fa-upload ${className}`} style={{fontSize: size}}></i>;
+
+        // KUNCI PERBAIKAN 2: Polling yang stabil dan injeksi UMD fallback
+        const getSupabase = async () => {
+            if (supabase) return supabase;
+
+            // Tahap 1: Cek apakah script di <head> berhasil dimuat
+            if (window.supabase) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                return supabase;
+            }
+
+            // Tahap 2: Tunggu sebentar (maks 2.5 detik), mungkin internet melambat
+            let retries = 25;
+            while (!window.supabase && retries > 0) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                retries--;
+            }
+
+            if (window.supabase) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                return supabase;
+            }
+
+            // Tahap 3: Darurat. Multi-CDN Fallback (Jika 1 diblokir, coba yang lain)
+            const cdnList = [
+                'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js',
+                'https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.3/supabase.umd.min.js', // CDN Cloudflare (Paling kebal blokir)
+                'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js'
+            ];
+
+            for (const cdnUrl of cdnList) {
+                try {
+                    await new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        script.src = cdnUrl;
+                        script.crossOrigin = 'anonymous';
+                        
+                        script.onload = () => {
+                            if (window.supabase) resolve();
+                            else reject(new Error("Dimuat tapi window.supabase kosong."));
+                        };
+                        
+                        script.onerror = () => reject(new Error(`Gagal memuat ${cdnUrl}`));
+                        document.head.appendChild(script);
+                    });
+                    
+                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    return supabase;
+                } catch (e) {
+                    console.warn(`Fallback CDN Gagal: ${e.message}. Mencoba jalur lain...`);
+                    // Lanjut ke CDN berikutnya dalam daftar
+                }
+            }
+            
+            // Jika semua CDN gagal, baru lemparkan error fatal
+            throw new Error("Semua jalur CDN diblokir oleh jaringan atau browser Anda. Gunakan Live Server (Bukan file:///) atau ganti koneksi internet.");
+        };
+
+        const RichTextEditor = ({ value, onChange, placeholder, minHeight="120px" }) => {
+            const editorRef = useRef(null);
+            const fileInputRef = useRef(null);
+
+            useEffect(() => {
+                if (editorRef.current && value !== editorRef.current.innerHTML) editorRef.current.innerHTML = value || '';
+                try {
+                    document.execCommand('defaultParagraphSeparator', false, 'p');
+                    document.execCommand('styleWithCSS', false, true);
+                } catch(e) {}
+            }, []); 
+
+            const handleInput = () => { if (editorRef.current) onChange(editorRef.current.innerHTML); };
+            
+            const execCmd = (cmd, e, val=null) => { 
+                if(e) e.preventDefault(); 
+                editorRef.current.focus(); 
+                document.execCommand(cmd, false, val); 
+                handleInput(); 
+            };
+
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const imgHTML = `<img src="${reader.result}" alt="Gambar" style="max-width: 100%; width: auto; max-height: 250px; border-radius: 8px; margin: 8px 0; object-fit: contain; display: block;" /><br/>`;
+                        editorRef.current.focus();
+                        document.execCommand('insertHTML', false, imgHTML);
+                        handleInput();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const insertMath = (formula) => {
+                const mathHTML = ` <span class="math-tex">\\(${formula}\\)</span> `;
+                editorRef.current.focus();
+                document.execCommand('insertHTML', false, mathHTML);
+                handleInput();
+            };
+
+            const insertMathManual = (e) => {
+                if(e) e.preventDefault();
+                const formula = prompt("Ketik manual kode LaTeX (contoh: \\frac{1}{2}):");
+                if (formula) insertMath(formula);
+            };
+
+            return (
+                <div className="border border-slate-300 rounded-lg overflow-hidden bg-white focus-within:border-emerald-500 focus-within:ring-1 transition-all">
+                    <div className="bg-slate-50 border-b border-slate-200 p-1.5 flex flex-wrap gap-1 items-center">
+                        <button onMouseDown={(e)=>execCmd('bold', e)} type="button" className="w-8 h-8 font-bold text-slate-700 hover:bg-slate-200 rounded">B</button>
+                        <button onMouseDown={(e)=>execCmd('italic', e)} type="button" className="w-8 h-8 italic text-slate-700 hover:bg-slate-200 rounded">I</button>
+                        <button onMouseDown={(e)=>execCmd('underline', e)} type="button" className="w-8 h-8 underline text-slate-700 hover:bg-slate-200 rounded">U</button>
+                        
+                        <div className="w-px h-5 bg-slate-300 mx-1"></div>
+                        <button onMouseDown={(e)=>execCmd('justifyLeft', e)} type="button" className="w-8 h-8 text-slate-700 hover:bg-slate-200 rounded flex items-center justify-center" title="Rata Kiri"><i className="fas fa-align-left text-xs"></i></button>
+                        <button onMouseDown={(e)=>execCmd('justifyCenter', e)} type="button" className="w-8 h-8 text-slate-700 hover:bg-slate-200 rounded flex items-center justify-center" title="Rata Tengah"><i className="fas fa-align-center text-xs"></i></button>
+                        <button onMouseDown={(e)=>execCmd('justifyRight', e)} type="button" className="w-8 h-8 text-slate-700 hover:bg-slate-200 rounded flex items-center justify-center" title="Rata Kanan"><i className="fas fa-align-right text-xs"></i></button>
+                        <button onMouseDown={(e)=>execCmd('justifyFull', e)} type="button" className="w-8 h-8 text-slate-700 hover:bg-slate-200 rounded flex items-center justify-center" title="Rata Kanan Kiri (Justify)"><i className="fas fa-align-justify text-xs"></i></button>
+
+                        <div className="w-px h-5 bg-slate-300 mx-1"></div>
+                        <button onMouseDown={(e)=>{ if(e) e.preventDefault(); fileInputRef.current.click();}} type="button" className="h-8 px-2.5 text-slate-700 hover:bg-slate-200 rounded flex items-center text-xs font-semibold"><ImageIcon size={14} className="mr-1 text-emerald-600"/> Gambar</button>
+                        
+                        <div className="w-px h-5 bg-slate-300 mx-1"></div>
+                        <button onMouseDown={insertMathManual} type="button" className="h-8 px-2 text-slate-700 hover:bg-slate-200 rounded flex items-center text-xs font-semibold" title="Ketik Manual LaTeX"><Calculator size={14} className="mr-1 text-blue-600"/> Manual</button>
+                        
+                        <select 
+                            onChange={(e) => { 
+                                if(e.target.value) { 
+                                    insertMath(e.target.value); 
+                                    e.target.value = ''; 
+                                } 
+                            }} 
+                            className="h-8 px-2 ml-1 bg-white hover:bg-slate-50 border border-slate-300 rounded text-xs font-bold text-blue-700 outline-none cursor-pointer focus:ring-1 focus:ring-blue-500 shadow-sm"
+                        >
+                            <option value="">+ Sisipkan Rumus</option>
+                            <option value={"x^2"}>Kuadrat (x²)</option>
+                            <option value={"\\sqrt{x}"}>Akar (√x)</option>
+                            <option value={"\\sqrt[n]{x}"}>Akar Pangkat (ⁿ√x)</option>
+                            <option value={"\\pi"}>Phi (π)</option>
+                            <option value={"\\frac{x}{y}"}>Pecahan (x/y)</option>
+                            <option value={"x"}>Tanda (x)</option>
+                            <option value={"n"}>Tanda (n)</option>
+                            <option value={"\\times"}>Kali (×)</option>
+                            <option value={"\\div"}>Bagi (÷)</option>
+                            <option value={"\\frac{a}{b} + \\frac{c}{d}"}>Jumlah Pecahan</option>
+                        </select>
+
+                        <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+                    </div>
+                    <div ref={editorRef} contentEditable onInput={handleInput} onBlur={handleInput} className="p-3 outline-none rich-text-content editor-ignore-math text-slate-700 text-sm" style={{minHeight: minHeight}} placeholder={placeholder} />
+                </div>
+            );
+        };
+
+        function useStickySession(defaultValue, key) {
+          const [value, setValue] = useState(() => {
+            const stickyValue = window.localStorage.getItem(key);
+            return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue;
+          });
+          useEffect(() => { window.localStorage.setItem(key, JSON.stringify(value)); }, [key, value]);
+          return [value, setValue];
+        }
+
+        const triggerMathRender = () => {
+            if (window.renderMathInElement) {
+                setTimeout(() => {
+                    window.renderMathInElement(document.body, {
+                        ignoredClasses: ["editor-ignore-math"],
+                        delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}, {left: '\\(', right: '\\)', display: false}, {left: '\\[', right: '\\]', display: true}],
+                        throwOnError : false
+                    });
+                }, 300);
+            }
+        };
+
+        const calculateScore = (answers, questions) => {
+          let totalPoints = 0;
+          let maxPoints = 0;
+          
+          const detailedResults = questions.map(q => {
+            const userAnswer = answers[q.id];
+            let pointsEarned = 0;
+            let questionMaxPoints = 0;
+            let isCorrect = false;
+            
+            if (q.type === 'MCQ') {
+                questionMaxPoints = 1;
+                if (userAnswer && userAnswer === q.correctAnswer) {
+                    pointsEarned = 1;
+                    isCorrect = true;
+                }
+            } else if (q.type === 'MCMA') {
+                questionMaxPoints = 2;
+                if (userAnswer && Array.isArray(userAnswer)) {
+                    const sortedUser = [...userAnswer].sort();
+                    const sortedCorrect = [...(q.correctAnswers || [])].sort();
+                    if (sortedUser.length === sortedCorrect.length && sortedUser.every((val, index) => val === sortedCorrect[index])) {
+                        pointsEarned = 2;
+                        isCorrect = true;
+                    }
+                }
+            } else if (q.type === 'CATEGORY') {
+                const statementsCount = (q.statements || []).length;
+                questionMaxPoints = statementsCount; 
+                
+                if (userAnswer) {
+                    let correctCount = 0;
+                    (q.statements || []).forEach(s => {
+                        if (userAnswer[s.id] === s.correctCategory) correctCount++;
+                    });
+                    pointsEarned = correctCount;
+                    isCorrect = correctCount === statementsCount;
+                }
+            }
+            
+            maxPoints += questionMaxPoints;
+            totalPoints += pointsEarned;
+            
+            const isEmpty = !userAnswer || (typeof userAnswer === 'object' && Object.keys(userAnswer).length === 0);
+            
+            return { 
+                qId: q.id, 
+                type: q.type, 
+                isCorrect, 
+                isEmpty,
+                pointsEarned,
+                questionMaxPoints,
+                userAnswer: userAnswer 
+            };
+          });
+          
+          let rawPercentage = maxPoints > 0 ? (totalPoints / maxPoints) * 100 : 0;
+          const finalScore = Math.min(100, Math.round(rawPercentage));
+          
+          return { finalScore, totalPoints, maxPoints, detailedResults };
+        };
+
+        function App() {
+          const [currentRoute, setCurrentRoute] = useState('/'); 
+          const [tokens, setTokens] = useState([]);
+          const [results, setResults] = useState([]);
+          const [questions, setQuestions] = useState([]);
+          
+          const [activeFolder, setActiveFolder] = useState('Utama');
+          const [organizerName, setOrganizerName] = useState('KKGK Relasi Wonosobo');
+          const [schoolLogo, setSchoolLogo] = useState('');
+          const [examDate, setExamDate] = useState('');
+          const [startTimeStr, setStartTimeStr] = useState('07:30');
+          const [endTimeStr, setEndTimeStr] = useState('12:00');
+          const [isRandomQ, setIsRandomQ] = useState(false);
+          const [isRandomOpt, setIsRandomOpt] = useState(false);
+
+          const [isLoadingData, setIsLoadingData] = useState(false);
+          const [dbStatus, setDbStatus] = useState('connecting');
+          const [initErrorMsg, setInitErrorMsg] = useState('');
+          
+          const [activeSession, setActiveSession] = useStickySession(null, 'cbt_active_session');
+          const [isAdminLoggedIn, setIsAdminLoggedIn] = useStickySession(false, 'cbt_admin_auth');
+
+          const navigate = (path) => { window.scrollTo(0,0); setCurrentRoute(path); };
+
+          const fetchSupabaseData = async () => {
+             setIsLoadingData(true);
+             try {
+                const db = await getSupabase();
+                const [qRes, tRes] = await Promise.all([
+                    db.from('questions').select('*'),
+                    db.from('tokens').select('*').order('generatedAt', { ascending: false })
+                ]);
+                
+                if(qRes.error) throw qRes.error;
+                if(tRes.error) throw tRes.error;
+                
+                if(qRes.data) setQuestions(qRes.data);
+                if(tRes.data) {
+                    setTokens(tRes.data);
+                    
+                    const fToken = tRes.data.find(t => t.code === 'SYS_SETTING_FOLDER');
+                    if (fToken) setActiveFolder(fToken.status);
+
+                    const oToken = tRes.data.find(t => t.code === 'SYS_SETTING_ORGANIZER');
+                    if (oToken) setOrganizerName(oToken.status);
+
+                    const lToken = tRes.data.find(t => t.code === 'SYS_SETTING_LOGO');
+                    if (lToken) setSchoolLogo(lToken.status);
+
+                    const dtToken = tRes.data.find(t => t.code === 'SYS_SETTING_DATE');
+                    if (dtToken) setExamDate(dtToken.status);
+
+                    const stToken = tRes.data.find(t => t.code === 'SYS_SETTING_START_TIME');
+                    if (stToken) setStartTimeStr(stToken.status);
+
+                    const etToken = tRes.data.find(t => t.code === 'SYS_SETTING_END_TIME');
+                    if (etToken) setEndTimeStr(etToken.status);
+
+                    const rqToken = tRes.data.find(t => t.code === 'SYS_SETTING_RANDOM_Q');
+                    if (rqToken) setIsRandomQ(rqToken.status === 'TRUE');
+
+                    const roToken = tRes.data.find(t => t.code === 'SYS_SETTING_RANDOM_OPT');
+                    if (roToken) setIsRandomOpt(roToken.status === 'TRUE');
+                }
+
+                if (isAdminLoggedIn) {
+                   const rRes = await db.from('results').select('*').order('created_at', { ascending: false });
+                   if(rRes.error) throw rRes.error;
+                   if(rRes.data) {
+                      const formattedResults = rRes.data.map(r => ({
+                         id: r.id,
+                         participant: { name: r.participant_name, school: r.participant_school, nis: r.participant_nis, grade: r.participant_grade },
+                         token: r.token, score: r.score, startTime: parseInt(r.start_time), endTime: parseInt(r.end_time),
+                         detail: { detailedResults: typeof r.detailed_results === 'string' ? JSON.parse(r.detailed_results) : r.detailed_results }, created_at: r.created_at
+                      }));
+                      setResults(formattedResults);
+                   }
+                }
+                setDbStatus('connected');
+                setInitErrorMsg('');
+             } catch (error) {
+                console.error("Fetch error:", error);
+                setInitErrorMsg(error.message);
+                setDbStatus('error');
+             } finally {
+                setIsLoadingData(false);
+             }
+          };
+
+          useEffect(() => { fetchSupabaseData(); }, [isAdminLoggedIn]);
+
+          const activeQuestions = isAdminLoggedIn ? questions : questions.filter(q => String(q.folder || 'Utama').trim().toLowerCase() === String(activeFolder || 'Utama').trim().toLowerCase());
+
+          useEffect(() => {
+            if (currentRoute === '/') {
+              if (activeSession && activeSession.status === 'ACTIVE') navigate('/exam');
+              else navigate('/login');
+            }
+            triggerMathRender();
+          }, [currentRoute, activeSession]);
+
+          const ParticipantLogin = () => {
+            const [inputToken, setInputToken] = useState('');
+            const [error, setError] = useState('');
+            const [isChecking, setIsChecking] = useState(false);
+
+            const handleLogin = async (e) => {
+              e.preventDefault();
+              setIsChecking(true); setError('');
+              try {
+                const db = await getSupabase();
+                const { data: tokenObj, error: fetchErr } = await db.from('tokens').select('*').eq('code', inputToken.trim().toUpperCase()).single();
+                
+                if (fetchErr || !tokenObj || tokenObj.code.startsWith('SYS_SETTING_') || tokenObj.code.startsWith('SYS_FOLDER_')) { setError('Token tidak valid atau tidak ditemukan.'); setIsChecking(false); return; }
+                if (tokenObj.status === 'USED') { setError('Token sudah digunakan.'); setIsChecking(false); return; }
+                if (tokenObj.status === 'EXPIRED') { setError('Token kedaluwarsa.'); setIsChecking(false); return; }
+                if (tokenObj.status === 'BLOCKED') { setError('Token diblokir. Hubungi administrator.'); setIsChecking(false); return; }
+
+                if (examDate && startTimeStr && endTimeStr) {
+                    const now = new Date();
+                    const startDateTime = new Date(`${examDate}T${startTimeStr}:00`);
+                    const endDateTime = new Date(`${examDate}T${endTimeStr}:00`);
+                    if (now < startDateTime) {
+                        setError(`Ujian belum dimulai. Jadwal: ${examDate} pukul ${startTimeStr}`);
+                        setIsChecking(false); return;
+                    }
+                    if (now > endDateTime) {
+                        setError(`Waktu ujian telah berakhir pada ${examDate} pukul ${endTimeStr}`);
+                        setIsChecking(false); return;
+                    }
+                }
+
+                setActiveSession({ 
+                    token: tokenObj.code, 
+                    participant: { name: tokenObj.participant_name || 'Peserta', school: tokenObj.participant_school || organizerName, nis: '', grade: '6' }, 
+                    answers: {}, flagged: [], status: 'SETUP' 
+                });
+                navigate('/instruction');
+              } catch (err) { setError(err.message || 'Gagal terhubung ke server.'); }
+              setIsChecking(false);
+            };
+
+            return (
+              <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
+                <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border-t-4 border-blue-600">
+                  <div className="text-center mb-8">
+                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm overflow-hidden">
+                        {schoolLogo ? <img src={schoolLogo} alt="Logo" className="w-full h-full object-cover"/> : <Monitor size={32} />}
+                    </div>
+                    <h1 className="text-2xl font-black text-slate-800 tracking-tight">CBT TKA</h1>
+                    <p className="text-slate-500 font-medium mt-1">{organizerName}</p>
+                  </div>
+                  
+                  {initErrorMsg && (
+                      <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm border border-red-200 font-medium flex items-start">
+                          <AlertCircle size={18} className="mr-2 mt-0.5 flex-shrink-0"/>
+                          <div><p className="font-bold mb-1">Gagal Terhubung ke Database</p><p>{initErrorMsg}</p></div>
+                      </div>
+                  )}
+
+                  <form onSubmit={handleLogin} className="space-y-5">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Masukkan Token Ujian</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Key className="h-5 w-5 text-slate-400" /></div>
+                        <input type="text" className="block w-full pl-11 pr-4 py-3.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 uppercase tracking-widest font-bold text-slate-800 placeholder-slate-300 bg-slate-50 focus:bg-white" placeholder="Ketik Token..." value={inputToken} onChange={(e) => setInputToken(e.target.value.toUpperCase())} required disabled={isChecking || dbStatus === 'error'}/>
+                      </div>
+                      {error && <p className="mt-2 text-sm text-rose-500 font-medium flex items-center"><AlertCircle size={14} className="mr-1.5"/> {error}</p>}
+                    </div>
+                    <button type="submit" disabled={isChecking || dbStatus === 'error'} className="w-full flex justify-center py-3.5 px-4 rounded-xl text-base font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md disabled:opacity-50">
+                      {isChecking ? 'Memeriksa Token...' : 'Masuk Ujian'}
+                    </button>
+                  </form>
+                  <div className="mt-8 pt-6 border-t border-slate-100 flex justify-between items-center">
+                     <span className={`text-xs font-bold px-3 py-1.5 rounded-md flex items-center ${dbStatus === 'connected' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
+                         <Cloud size={14} className="mr-1.5"/> {dbStatus === 'connected' ? 'On-line' : 'Offline'}
+                     </span>
+                     <button onClick={() => navigate('/admin/login')} className="text-xs font-semibold text-slate-400 hover:text-slate-800 transition-colors flex items-center"><Settings size={14} className="mr-1"/> Admin</button>
+                  </div>
+                </div>
+              </div>
+            );
+          };
+
+          const ParticipantInstruction = () => {
+            const [isStarting, setIsStarting] = useState(false);
+            if (!activeSession || !activeSession.participant) { navigate('/login'); return null; }
+            
+            const startExam = async () => {
+              setIsStarting(true);
+              try {
+                const db = await getSupabase();
+                await db.from('tokens').update({ status: 'USED' }).eq('code', activeSession.token);
+
+                let sessionQuestions = JSON.parse(JSON.stringify(activeQuestions));
+                if (isRandomQ) {
+                    for (let i = sessionQuestions.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [sessionQuestions[i], sessionQuestions[j]] = [sessionQuestions[j], sessionQuestions[i]];
+                    }
+                }
+                if (isRandomOpt) {
+                    sessionQuestions = sessionQuestions.map(q => {
+                        if (q.type === 'MCQ' && q.options) {
+                            const originalOptions = [...q.options];
+                            const texts = originalOptions.map(o => o.text);
+                            for (let i = texts.length - 1; i > 0; i--) {
+                                const j = Math.floor(Math.random() * (i + 1));
+                                [texts[i], texts[j]] = [texts[j], texts[i]];
+                            }
+                            q.options = originalOptions.map((opt, idx) => ({ ...opt, text: texts[idx] }));
+                            const originalCorrectText = originalOptions.find(o => o.id === q.correctAnswer)?.text;
+                            const newCorrectOption = q.options.find(o => o.text === originalCorrectText);
+                            if (newCorrectOption) q.correctAnswer = newCorrectOption.id;
+                        }
+                        return q;
+                    });
+                }
+
+                let durationLimitMs = 60 * 60 * 1000;
+                if (examDate && endTimeStr) {
+                    const endDateTime = new Date(`${examDate}T${endTimeStr}:00`).getTime();
+                    durationLimitMs = Math.max(60000, endDateTime - new Date().getTime());
+                }
+
+                setActiveSession(prev => ({ 
+                    ...prev, 
+                    status: 'ACTIVE', 
+                    startTime: new Date().getTime(), 
+                    durationLimit: durationLimitMs, 
+                    sessionQuestions,
+                    examCurrentIndex: 0 
+                }));
+                navigate('/exam');
+              } catch (err) { 
+                 alert("Gagal memulai ujian: " + err.message); 
+                 setIsStarting(false); 
+              }
+            };
+
+            return (
+              <div className="min-h-screen bg-slate-50 py-10 px-4 flex justify-center items-center">
+                 <div className="max-w-3xl w-full bg-white rounded-2xl shadow-xl p-8 md:p-10 border-t-4 border-amber-500">
+                    <div className="flex items-center mb-6 pb-4 border-b border-slate-100">
+                       <FileText className="text-amber-500 mr-3" size={28} />
+                       <h2 className="text-2xl font-bold text-slate-800">Petunjuk Ujian</h2>
+                    </div>
+                    <div className="prose prose-slate max-w-none mb-8">
+                       <ul className="space-y-4 text-slate-700 font-medium">
+                         <li className="flex items-start"><CheckCircle className="text-emerald-500 mr-3 mt-1 flex-shrink-0" size={18}/> Waktu pengerjaan disesuaikan hingga jam selesai untuk <b>{activeQuestions.length} soal</b>.</li>
+                         <li className="flex items-start"><CheckCircle className="text-emerald-500 mr-3 mt-1 flex-shrink-0" size={18}/> Jawaban akan <b>tersimpan otomatis</b> setiap Anda berpindah nomor.</li>
+                         <li className="flex items-start text-red-600 font-medium bg-red-50 p-4 rounded-lg border border-red-100"><AlertCircle className="text-red-500 mr-3 mt-0.5 flex-shrink-0" size={18}/> Dilarang keras membuka tab/jendela lain. Sistem akan mencatat setiap pelanggaran yang terjadi.</li>
+                       </ul>
+                    </div>
+                    <div className="bg-blue-50 p-5 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 border border-blue-100">
+                       <div className="text-blue-900 text-center sm:text-left">
+                         Peserta: <strong className="text-lg block sm:inline">{activeSession.participant.name}</strong> <br className="sm:hidden"/>({activeSession.participant.school})
+                       </div>
+                       <button onClick={startExam} disabled={isStarting || activeQuestions.length === 0} className="w-full sm:w-auto py-3.5 px-8 bg-emerald-600 text-white font-bold text-lg rounded-xl shadow-md hover:bg-emerald-700 transition-transform hover:scale-105 disabled:opacity-50">
+                           {isStarting ? 'Memproses...' : 'Mulai Ujian'}
+                       </button>
+                    </div>
+                 </div>
+              </div>
+            );
+          };
+
+          const ExamEngine = () => {
+            const [timeLeft, setTimeLeft] = useState(0);
+            
+            useEffect(() => {
+                if (!activeSession || activeSession.status !== 'ACTIVE') return;
+                const preventDefaultAction = (e) => e.preventDefault();
+                const handleVisibilityChange = () => {
+                    if (document.hidden) {
+                        alert("PERINGATAN PELANGGARAN!\nAnda terdeteksi keluar dari layar ujian.");
+                        setActiveSession(prev => ({ ...prev, cheatWarnings: (prev.cheatWarnings || 0) + 1 }));
+                    }
+                };
+                document.addEventListener('contextmenu', preventDefaultAction);
+                document.addEventListener('copy', preventDefaultAction);
+                document.addEventListener('visibilitychange', handleVisibilityChange);
+                return () => {
+                    document.removeEventListener('contextmenu', preventDefaultAction);
+                    document.removeEventListener('copy', preventDefaultAction);
+                    document.removeEventListener('visibilitychange', handleVisibilityChange);
+                };
+            }, [activeSession?.status]);
+
+            const examCurrentIndex = activeSession?.examCurrentIndex || 0;
+            const setExamCurrentIndex = (idx) => setActiveSession(prev => ({ ...prev, examCurrentIndex: idx }));
+            
+            useEffect(() => { 
+                if (!activeSession || activeSession.status !== 'ACTIVE') navigate('/'); 
+                triggerMathRender(); 
+            }, [activeSession?.status, examCurrentIndex]);
+
+            useEffect(() => {
+              if (!activeSession || activeSession.status !== 'ACTIVE') return;
+              const timer = setInterval(() => {
+                const now = new Date().getTime();
+                const remaining = Math.max(0, Math.floor(((activeSession.startTime + activeSession.durationLimit) - now) / 1000));
+                setTimeLeft(remaining);
+                if (remaining <= 0) { clearInterval(timer); navigate('/review'); } 
+              }, 1000);
+              return () => clearInterval(timer);
+            }, [activeSession]);
+
+            const examQuestions = activeSession?.sessionQuestions || activeQuestions;
+            if (!activeSession || examQuestions.length === 0 || !examQuestions[examCurrentIndex]) return <div className="min-h-screen flex items-center justify-center font-medium text-slate-500">Memuat soal...</div>;
+            
+            const currentQuestion = examQuestions[examCurrentIndex];
+            const currentAnswer = activeSession.answers[currentQuestion.id];
+            const isFlagged = activeSession.flagged?.includes(currentQuestion.id);
+            
+            const handleAnswerChange = (val) => { setActiveSession(prev => ({ ...prev, answers: { ...prev.answers, [currentQuestion.id]: val } })); };
+            const toggleFlag = () => { setActiveSession(prev => ({ ...prev, flagged: isFlagged ? prev.flagged.filter(id => id !== currentQuestion.id) : [...(prev.flagged || []), currentQuestion.id] })); };
+
+            const handleAnswerChangeMCQ = (val) => {
+                handleAnswerChange(val);
+                if (examCurrentIndex < examQuestions.length - 1) {
+                    setTimeout(() => setExamCurrentIndex(examCurrentIndex + 1), 400); 
+                }
+            };
+
+            const RenderMCQ = () => (
+              <div className="space-y-3 mt-6">
+                {(currentQuestion.options||[]).map(opt => (
+                  <label key={opt.id} className={`flex items-start p-4 border rounded-xl cursor-pointer transition-all ${currentAnswer === opt.id ? 'border-emerald-500 bg-emerald-50 shadow-sm' : 'border-slate-200 hover:bg-slate-50'}`}>
+                    <div className="flex items-center h-6 mt-0.5"><input type="radio" checked={currentAnswer === opt.id} onChange={() => handleAnswerChangeMCQ(opt.id)} className="w-5 h-5 text-emerald-600" /></div>
+                    <div className="ml-4 flex-1 flex text-slate-800"><span className="font-bold text-slate-400 w-6 mt-0.5">{opt.id}.</span><div className="flex-1 rich-text-content" dangerouslySetInnerHTML={{__html: opt.text}}></div></div>
+                  </label>
+                ))}
+              </div>
+            );
+
+            const RenderMCMA = () => {
+               const selectedArr = Array.isArray(currentAnswer) ? currentAnswer : [];
+               const handleToggle = (id) => {
+                  let newArr = [...selectedArr];
+                  if(newArr.includes(id)) newArr = newArr.filter(x => x !== id); else newArr.push(id);
+                  handleAnswerChange(newArr.length > 0 ? newArr : null);
+               };
+               return (
+                  <div className="space-y-3 mt-6">
+                     <div className="bg-blue-50 border border-blue-100 text-blue-700 p-3 rounded-lg font-medium text-sm mb-4 flex items-center"><AlertCircle size={16} className="mr-2"/> Pilih lebih dari satu jawaban.</div>
+                     {(currentQuestion.statements||[]).map((stmt, idx) => (
+                        <label key={stmt.id} className={`flex items-start p-4 border rounded-xl cursor-pointer transition-all ${selectedArr.includes(stmt.id) ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-slate-200 hover:bg-slate-50'}`}>
+                           <div className="flex items-center h-6 mt-0.5"><input type="checkbox" checked={selectedArr.includes(stmt.id)} onChange={() => handleToggle(stmt.id)} className="w-5 h-5 text-blue-600 rounded" /></div>
+                           <div className="ml-4 flex-1 flex text-slate-800"><span className="font-bold text-slate-400 w-6 mt-0.5">{idx + 1}.</span><div className="flex-1 rich-text-content" dangerouslySetInnerHTML={{__html: stmt.text}}></div></div>
+                        </label>
+                     ))}
+                  </div>
+               );
+            };
+
+            const RenderCATEGORY = () => {
+               const catAnswer = currentAnswer || {};
+               const cat1Label = currentQuestion.statements?.[0]?.category1 || 'Benar';
+               const cat2Label = currentQuestion.statements?.[0]?.category2 || 'Salah';
+               return (
+                  <div className="mt-6 overflow-x-auto pb-2">
+                     <table className="w-full text-left border-collapse min-w-[500px] bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <thead><tr className="bg-slate-50 border-b"><th className="py-3 px-4 text-center w-12">No</th><th className="py-3 px-4">Pernyataan</th><th className="py-3 px-4 text-center w-28 bg-emerald-50/50 border-l">{cat1Label}</th><th className="py-3 px-4 text-center w-28 bg-amber-50/50 border-l">{cat2Label}</th></tr></thead>
+                        <tbody>
+                           {(currentQuestion.statements||[]).map((stmt, idx) => (
+                              <tr key={stmt.id} className="border-b border-slate-100 hover:bg-slate-50">
+                                 <td className="py-4 px-4 text-slate-400 font-medium text-center align-top">{idx + 1}</td>
+                                 <td className="py-4 px-4 text-slate-800 align-top"><div className="rich-text-content text-sm" dangerouslySetInnerHTML={{__html: stmt.text}}></div></td>
+                                 <td className="py-4 px-4 text-center align-middle border-l bg-emerald-50/30 cursor-pointer" onClick={() => handleAnswerChange({...catAnswer, [stmt.id]: cat1Label})}><input type="radio" checked={catAnswer[stmt.id] === cat1Label} onChange={() => {}} className="w-5 h-5 text-emerald-600" /></td>
+                                 <td className="py-4 px-4 text-center align-middle border-l bg-amber-50/30 cursor-pointer" onClick={() => handleAnswerChange({...catAnswer, [stmt.id]: cat2Label})}><input type="radio" checked={catAnswer[stmt.id] === cat2Label} onChange={() => {}} className="w-5 h-5 text-amber-600" /></td>
+                              </tr>
+                           ))}
+                        </tbody>
+                     </table>
+                  </div>
+               );
+            };
+
+            const fmtTime = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+
+            return (
+              <div className="min-h-screen bg-slate-50 flex flex-col prevent-select">
+                <header className="bg-slate-900 shadow px-4 sm:px-6 py-3 flex justify-between items-center sticky top-0 z-20">
+                   <div className="flex items-center">
+                      <div className="hidden sm:flex w-9 h-9 bg-emerald-500 rounded-lg items-center justify-center text-white mr-3"><Monitor size={18}/></div>
+                      <div><h1 className="text-base font-bold text-white leading-tight">CBT Ujian Terpadu</h1><p className="text-xs text-slate-400">{activeSession.participant?.name}</p></div>
+                   </div>
+                   <div className={`flex items-center font-bold text-lg px-4 py-1.5 rounded-lg border ${timeLeft < 300 ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-800 text-emerald-400'}`}>
+                      <Clock size={18} className="mr-2" /> {fmtTime(timeLeft)}
+                   </div>
+                </header>
+                <div className="flex-1 flex flex-col lg:flex-row max-w-[1400px] w-full mx-auto p-4 gap-5">
+                   <div className="flex-1 flex flex-col min-w-0">
+                      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 sm:p-8 flex-1 flex flex-col">
+                         <div className="flex flex-wrap gap-2 justify-between items-center mb-6 pb-4 border-b">
+                            <h2 className="text-xl font-bold text-slate-800">SOAL NO. {examCurrentIndex + 1}</h2>
+                            <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-600">{currentQuestion.category}</span>
+                         </div>
+                         <div className="flex-1 overflow-y-auto pr-1 pb-8">
+                            <div className="text-base sm:text-lg text-slate-800 leading-relaxed font-medium mb-6 rich-text-content" dangerouslySetInnerHTML={{ __html: currentQuestion.question || '' }} />
+                            {currentQuestion.type === 'MCQ' && <RenderMCQ />}
+                            {currentQuestion.type === 'MCMA' && <RenderMCMA />}
+                            {currentQuestion.type === 'CATEGORY' && <RenderCATEGORY />}
+                         </div>
+                         <div className="pt-5 mt-4 border-t flex justify-between items-center gap-3">
+                            <button onClick={() => setExamCurrentIndex(Math.max(0, examCurrentIndex - 1))} disabled={examCurrentIndex === 0} className="px-4 py-2.5 bg-slate-50 text-slate-700 rounded-lg disabled:opacity-50 font-medium border"><ChevronLeft size={18} className="mr-1" /> Sebelum</button>
+                            <label className={`flex items-center px-4 py-2.5 rounded-lg font-medium border cursor-pointer ${isFlagged ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-white border-slate-200 text-slate-600'}`}>
+                               <input type="checkbox" checked={isFlagged} onChange={toggleFlag} className="mr-2 w-4 h-4 text-amber-500 rounded" /> Ragu-ragu
+                            </label>
+                            {examCurrentIndex < examQuestions.length - 1 ? (
+                               <button onClick={() => setExamCurrentIndex(examCurrentIndex + 1)} className="px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 shadow-sm">Lanjut</button>
+                            ) : (
+                               <button onClick={() => navigate('/review')} className="px-5 py-2.5 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 shadow-sm">Selesai</button>
+                            )}
+                         </div>
+                      </div>
+                   </div>
+                   <div className="lg:w-80 w-full flex-shrink-0">
+                      <div className="bg-white rounded-xl shadow-sm border p-5 sticky top-20">
+                         <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center border-b pb-3"><LayoutDashboard size={18} className="mr-2 text-slate-400"/> Navigator Soal</h3>
+                         <div className="grid grid-cols-5 gap-2 max-h-[50vh] overflow-y-auto">
+                            {examQuestions.map((q, idx) => {
+                               const ans = activeSession.answers[q.id];
+                               const isAns = ans && (q.type !== 'CATEGORY' || Object.keys(ans).length === (q.statements||[]).length);
+                               const isCur = idx === examCurrentIndex;
+                               const isFlg = activeSession.flagged?.includes(q.id);
+                               let cls = "h-10 w-full rounded-lg font-semibold text-sm flex items-center justify-center border transition-all cursor-pointer ";
+                               if (isCur) cls += "ring-2 ring-blue-500 bg-white text-slate-800 border-slate-300";
+                               else if (isFlg) cls += "bg-amber-400 text-amber-900 border-amber-500";
+                               else if (isAns) cls += "bg-emerald-500 text-white border-emerald-600";
+                               else cls += "bg-slate-50 text-slate-500 border-slate-200";
+                               return <button key={q.id} onClick={() => setExamCurrentIndex(idx)} className={cls}>{idx + 1}</button>;
+                            })}
+                         </div>
+                      </div>
+                   </div>
+                </div>
+              </div>
+            );
+          };
+
+          const ExamReview = () => {
+             const [isSubmitting, setIsSubmitting] = useState(false);
+             const [showConfirm, setShowConfirm] = useState(false);
+             if (!activeSession || activeSession.status !== 'ACTIVE') { navigate('/'); return null; }
+
+             const examQuestions = activeSession?.sessionQuestions || activeQuestions;
+             const totalQ = examQuestions.length;
+             const ansQ = examQuestions.filter(q => {
+                const ans = activeSession.answers[q.id];
+                if(!ans) return false;
+                if(q.type === 'CATEGORY') return Object.keys(ans).length === (q.statements||[]).length;
+                return true;
+             }).length;
+
+             const handleFinalSubmit = async () => {
+               setIsSubmitting(true);
+               const result = calculateScore(activeSession.answers, examQuestions);
+               const finalDetailedResults = [...result.detailedResults, { qId: 'SYS_CHEATS', cheatCount: activeSession.cheatWarnings || 0 }];
+               const payload = {
+                  participant_name: activeSession.participant.name, participant_school: activeSession.participant.school,
+                  participant_nis: activeSession.participant.nis, participant_grade: activeSession.participant.grade,
+                  token: activeSession.token, score: result.finalScore, start_time: activeSession.startTime,
+                  end_time: new Date().getTime(), detailed_results: JSON.stringify(finalDetailedResults)
+               };
+               try {
+                 const db = await getSupabase();
+                 await db.from('results').insert([payload]);
+                 setActiveSession({ ...activeSession, status: 'SUBMITTED', score: result.finalScore });
+                 navigate('/submitted');
+               } catch (err) {
+                 alert("Gagal mengirim ujian: " + err.message);
+                 setIsSubmitting(false); setShowConfirm(false);
+               }
+             };
+
+             return (
+               <div className="min-h-screen bg-slate-50 flex py-10 px-4 justify-center items-center">
+                   <div className="bg-white p-8 md:p-10 rounded-2xl shadow-xl max-w-2xl w-full text-center border-t-4 border-blue-600">
+                      <h2 className="text-2xl font-bold mb-6 text-slate-800">Konfirmasi Selesai Ujian</h2>
+                      <div className="grid grid-cols-2 gap-4 mb-8">
+                         <div className="p-5 bg-slate-50 border rounded-xl"><p className="text-slate-500 text-sm mb-1">Total Soal</p><p className="text-4xl font-bold text-slate-800">{totalQ}</p></div>
+                         <div className="p-5 bg-emerald-50 border rounded-xl"><p className="text-emerald-700 text-sm mb-1">Dijawab</p><p className="text-4xl font-bold text-emerald-600">{ansQ}</p></div>
+                      </div>
+                      {!showConfirm ? (
+                         <div className="flex gap-3">
+                            <button onClick={()=>navigate('/exam')} className="flex-1 py-3 border rounded-xl font-semibold text-slate-700">Kembali</button>
+                            <button onClick={()=>setShowConfirm(true)} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold">Kirim Ujian</button>
+                         </div>
+                      ) : (
+                         <div className="p-6 bg-slate-50 rounded-xl border">
+                            <p className="font-bold text-rose-600 mb-2">Kirim sekarang?</p>
+                            <div className="flex gap-3">
+                               <button onClick={()=>setShowConfirm(false)} className="flex-1 py-2.5 bg-white border rounded-lg font-medium">Batal</button>
+                               <button onClick={handleFinalSubmit} disabled={isSubmitting} className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold">{isSubmitting ? 'Mengirim...' : 'Ya, Kirim'}</button>
+                            </div>
+                         </div>
+                      )}
+                   </div>
+               </div>
+             );
+          };
+
+          const ExamSubmitted = () => (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+                <div className="bg-white p-10 rounded-2xl shadow-xl text-center max-w-md w-full border-t-4 border-emerald-500">
+                   <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-5"><CheckCircle size={40} /></div>
+                   <h2 className="text-xl font-bold mb-3 text-slate-800">Ujian Selesai</h2>
+                   <p className="text-slate-500 text-sm mb-8">Jawaban berhasil diunggah.</p>
+                   <button onClick={() => { setActiveSession(null); navigate('/'); }} className="w-full px-6 py-3 bg-slate-800 text-white font-semibold rounded-xl">Beranda</button>
+                </div>
+            </div>
+          );
+
+          const AdminLogin = () => {
+            const [u, setU] = useState(''); const [p, setP] = useState(''); const [showP, setShowP] = useState(false);
+            return (
+              <div className="min-h-screen bg-slate-900 flex justify-center items-center p-4">
+                <form onSubmit={(e)=>{e.preventDefault(); if(u==='admin'&&p==='admin123'){setIsAdminLoggedIn(true); navigate('/admin/dashboard');}else alert('Salah');}} className="bg-white p-8 rounded-2xl max-w-sm w-full shadow-2xl">
+                   <div className="text-center mb-6"><div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3"><Settings size={24}/></div><h1 className="text-xl font-bold text-slate-800">Admin</h1></div>
+                   <input type="text" placeholder="Username" value={u} onChange={e=>setU(e.target.value)} className="w-full p-3 border rounded-lg mb-3 text-sm" required/>
+                   <div className="relative mb-6">
+                       <input type={showP ? "text" : "password"} placeholder="Password" value={p} onChange={e=>setP(e.target.value)} className="w-full p-3 border rounded-lg text-sm pr-10" required/>
+                       <button type="button" onClick={()=>setShowP(!showP)} className="absolute right-3 top-3 text-slate-400 hover:text-slate-600">{showP ? <EyeSlash size={18}/> : <Eye size={18}/>}</button>
+                   </div>
+                   <button type="submit" className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg">Login</button>
+                   <button type="button" onClick={()=>navigate('/')} className="w-full mt-4 text-xs text-slate-500 font-medium">Kembali</button>
+                </form>
+              </div>
+            );
+          };
+
+          const AdminLayout = ({ children, title }) => {
+            const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+            if (!isAdminLoggedIn) { navigate('/admin/login'); return null; }
+            const menu = [
+              { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+              { id: 'questions', label: 'Bank Soal', icon: Database, path: '/admin/questions' },
+              { id: 'tokens', label: 'Token Ujian', icon: Key, path: '/admin/tokens' },
+              { id: 'results', label: 'Hasil Ujian', icon: CheckSquare, path: '/admin/results' },
+              { id: 'analysis', label: 'Analisis Soal', icon: BarChart2, path: '/admin/analysis' },
+              { id: 'reports', label: 'Cetak Laporan', icon: Printer, path: '/admin/reports' }
+            ];
+            return (
+              <div className="min-h-screen bg-slate-50 flex print:block">
+                {isMobileMenuOpen && <div className="fixed inset-0 bg-slate-900/60 z-40 lg:hidden" onClick={() => setIsMobileMenuOpen(false)} />}
+                <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 flex flex-col transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 transition-transform`}>
+                  <div className="p-6 flex items-center justify-between border-b border-slate-800"><div className="flex items-center"><div className="w-8 h-8 bg-blue-500 text-white rounded flex items-center justify-center mr-3"><Settings size={16}/></div><span className="text-white font-bold">CBT ADMIN</span></div><button className="lg:hidden text-slate-400" onClick={() => setIsMobileMenuOpen(false)}><X size={20}/></button></div>
+                  <nav className="flex-1 py-4 space-y-1 px-3">{menu.map(m => (<button key={m.id} onClick={() => { setIsMobileMenuOpen(false); navigate(m.path); }} className={`w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium ${currentRoute.startsWith(m.path) ? 'bg-blue-500/10 text-blue-400' : 'text-slate-400 hover:bg-slate-800'}`}><m.icon size={18} className="mr-3"/> {m.label}</button>))}</nav>
+                  <div className="p-4 border-t border-slate-800"><button onClick={() => { setIsAdminLoggedIn(false); navigate('/admin/login'); }} className="w-full flex items-center justify-center px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"><LogOut size={16} className="mr-2"/> Keluar</button></div>
+                </div>
+                <div className="flex-1 flex flex-col h-screen overflow-hidden print:h-auto print:block">
+                  <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10 print:hidden shadow-sm">
+                    <div className="flex items-center gap-3"><button className="lg:hidden p-1.5 border rounded" onClick={() => setIsMobileMenuOpen(true)}><Menu size={20}/></button><h2 className="text-xl font-semibold text-slate-800">{title}</h2></div>
+                    <span className="text-xs font-bold px-2.5 py-1 bg-emerald-50 text-emerald-600 border rounded-md flex items-center"><Cloud size={12} className="mr-1"/> Online</span>
+                  </header>
+                  <main className="flex-1 overflow-y-auto p-6 lg:p-8 print:p-0">{children}</main>
+                </div>
+              </div>
+            );
+          };
+
+          const AdminDashboard = () => {
+             const [tempOrganizer, setTempOrganizer] = useState(organizerName);
+             const [tempLogo, setTempLogo] = useState(schoolLogo);
+             const [tempDate, setTempDate] = useState(examDate);
+             const [tempStartTime, setTempStartTime] = useState(startTimeStr);
+             const [tempEndTime, setTempEndTime] = useState(endTimeStr);
+             const [tempRandomQ, setTempRandomQ] = useState(isRandomQ);
+             const [tempRandomOpt, setTempRandomOpt] = useState(isRandomOpt);
+             const [isSaving, setIsSaving] = useState(false);
+
+             const handleLogoUpload = (e) => {
+                 const file = e.target.files[0];
+                 if (file) {
+                     const reader = new FileReader();
+                     reader.onloadend = () => setTempLogo(reader.result);
+                     reader.readAsDataURL(file);
+                 }
+             };
+
+             const saveSettings = async () => {
+                setIsSaving(true);
+                try {
+                    const db = await getSupabase();
+                    const upsertSetting = async (code, val) => {
+                        const { data } = await db.from('tokens').select('code').eq('code', code).maybeSingle();
+                        if (data) await db.from('tokens').update({ status: val }).eq('code', code);
+                        else await db.from('tokens').insert([{ code, status: val, generatedAt: new Date().toISOString() }]);
+                    };
+
+                    await Promise.all([
+                        upsertSetting('SYS_SETTING_ORGANIZER', tempOrganizer),
+                        upsertSetting('SYS_SETTING_LOGO', tempLogo),
+                        upsertSetting('SYS_SETTING_DATE', tempDate),
+                        upsertSetting('SYS_SETTING_START_TIME', tempStartTime),
+                        upsertSetting('SYS_SETTING_END_TIME', tempEndTime),
+                        upsertSetting('SYS_SETTING_RANDOM_Q', tempRandomQ ? 'TRUE' : 'FALSE'),
+                        upsertSetting('SYS_SETTING_RANDOM_OPT', tempRandomOpt ? 'TRUE' : 'FALSE')
+                    ]);
+
+                    setOrganizerName(tempOrganizer);
+                    setSchoolLogo(tempLogo);
+                    setExamDate(tempDate);
+                    setStartTimeStr(tempStartTime);
+                    setEndTimeStr(tempEndTime);
+                    setIsRandomQ(tempRandomQ);
+                    setIsRandomOpt(tempRandomOpt);
+                    alert("Pengaturan berhasil disimpan!");
+                } catch(e) { alert("Gagal: " + e.message); }
+                setIsSaving(false);
+             };
+
+             return (
+                <AdminLayout title="Dashboard">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                    <div className="bg-white p-5 rounded-xl border shadow-sm"><div className="text-slate-500 text-xs mb-1">Peserta Selesai</div><div className="text-2xl font-bold">{results.length}</div></div>
+                    <div className="bg-white p-5 rounded-xl border shadow-sm"><div className="text-slate-500 text-xs mb-1">Total Soal</div><div className="text-2xl font-bold">{questions.length}</div></div>
+                    <div className="bg-white p-5 rounded-xl border shadow-sm"><div className="text-slate-500 text-xs mb-1">Token Tersedia</div><div className="text-2xl font-bold">{tokens.filter(t => !t.code.startsWith('SYS_') && t.status === 'AVAILABLE').length}</div></div>
+                </div>
+
+                <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 mb-8">
+                    <h3 className="text-base font-semibold text-blue-900 mb-4 flex items-center"><Settings size={18} className="mr-2"/> Pengaturan Penerbitan Ujian</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div><label className="block text-sm font-semibold text-blue-800 mb-1">Nama Penyelenggara</label><input type="text" value={tempOrganizer} onChange={e=>setTempOrganizer(e.target.value)} className="w-full p-2.5 rounded-lg border bg-white text-sm"/></div>
+                        <div>
+                            <label className="block text-sm font-semibold text-blue-800 mb-1">Unggah Logo Sekolah</label>
+                            <div className="flex items-center gap-3">
+                                {tempLogo && <img src={tempLogo} alt="Logo" className="w-10 h-10 object-cover rounded border"/>}
+                                <input type="file" accept="image/*" onChange={handleLogoUpload} className="w-full p-2 text-xs bg-white rounded border"/>
+                            </div>
+                        </div>
+                        <div><label className="block text-sm font-semibold text-blue-800 mb-1">Tanggal Ujian</label><input type="date" value={tempDate} onChange={e=>setTempDate(e.target.value)} className="w-full p-2.5 rounded-lg border bg-white text-sm"/></div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div><label className="block text-sm font-semibold text-blue-800 mb-1">Mulai Jam</label><input type="time" value={tempStartTime} onChange={e=>setTempStartTime(e.target.value)} className="w-full p-2.5 rounded-lg border bg-white text-sm"/></div>
+                            <div><label className="block text-sm font-semibold text-blue-800 mb-1">Sampai Jam</label><input type="time" value={tempEndTime} onChange={e=>setTempEndTime(e.target.value)} className="w-full p-2.5 rounded-lg border bg-white text-sm"/></div>
+                        </div>
+                        <div className="md:col-span-2 bg-white/60 p-4 rounded-xl border flex flex-wrap gap-x-8 gap-y-3">
+                            <label className="flex items-center cursor-pointer text-sm font-semibold text-blue-900"><input type="checkbox" checked={tempRandomQ} onChange={e=>setTempRandomQ(e.target.checked)} className="w-5 h-5 mr-2"/> Acak Urutan Soal</label>
+                            <label className="flex items-center cursor-pointer text-sm font-semibold text-blue-900"><input type="checkbox" checked={tempRandomOpt} onChange={e=>setTempRandomOpt(e.target.checked)} className="w-5 h-5 mr-2"/> Acak Opsi Jawaban</label>
+                        </div>
+                    </div>
+                    <div className="mt-5 flex justify-end"><button onClick={saveSettings} disabled={isSaving} className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700">{isSaving ? 'Menyimpan...' : 'Simpan Pengaturan'}</button></div>
+                </div>
+                </AdminLayout>
+             );
+          };
+
+          const AdminTokens = () => {
+             const [isSaving, setIsSaving] = useState(false);
+             const [showImport, setShowImport] = useState(false);
+             const [fileUploadError, setFileUploadError] = useState('');
+             const [isMassEdit, setIsMassEdit] = useState(false);
+             const [massEditTokens, setMassEditTokens] = useState([]);
+             
+             const [selectedTokens, setSelectedTokens] = useState([]);
+             const [downloadFilter, setDownloadFilter] = useState('Semua');
+             const [editFilter, setEditFilter] = useState('Semua');
+             const [sortOrder, setSortOrder] = useState('DEFAULT'); // Sortir A-Z
+
+             const actualTokens = tokens.filter(t => !t.code.startsWith('SYS_SETTING_') && !t.code.startsWith('SYS_FOLDER_'));
+             const uniqueClasses = [...new Set(actualTokens.map(t => t.participant_school).filter(Boolean))];
+             const uniqueEditClasses = [...new Set(massEditTokens.map(t => t.participant_school).filter(Boolean))];
+
+             let displayedTokens = downloadFilter === 'Semua' ? [...actualTokens] : actualTokens.filter(t => t.participant_school === downloadFilter);
+             if (sortOrder === 'NAME_ASC') displayedTokens.sort((a,b) => (a.participant_name || '').localeCompare(b.participant_name || ''));
+             else if (sortOrder === 'NAME_DESC') displayedTokens.sort((a,b) => (b.participant_name || '').localeCompare(a.participant_name || ''));
+
+             let displayedMassEditTokens = editFilter === 'Semua' ? [...massEditTokens] : massEditTokens.filter(t => t.participant_school === editFilter);
+             if (sortOrder === 'NAME_ASC') displayedMassEditTokens.sort((a,b) => (a.participant_name || '').localeCompare(b.participant_name || ''));
+             else if (sortOrder === 'NAME_DESC') displayedMassEditTokens.sort((a,b) => (b.participant_name || '').localeCompare(a.participant_name || ''));
+
+             const handleSelectAll = (e) => {
+                 if (e.target.checked) setSelectedTokens(displayedTokens.map(t => t.code));
+                 else setSelectedTokens([]);
+             };
+
+             const handleSelectAllEdit = (e) => {
+                 if (e.target.checked) setSelectedTokens(displayedMassEditTokens.map(t => t.code));
+                 else setSelectedTokens([]);
+             };
+
+             const handleSelectToken = (code) => {
+                 if (selectedTokens.includes(code)) setSelectedTokens(selectedTokens.filter(t => t !== code));
+                 else setSelectedTokens([...selectedTokens, code]);
+             };
+
+             const handleDeleteSelected = async () => {
+                 if (selectedTokens.length === 0) return;
+                 if (!confirm(`Hapus permanen ${selectedTokens.length} data terpilih?`)) return;
+                 setIsSaving(true);
+                 try {
+                     const db = await getSupabase();
+                     const { error } = await db.from('tokens').delete().in('code', selectedTokens);
+                     if (error) throw error;
+                     await fetchSupabaseData(); 
+                     setSelectedTokens([]); 
+                     alert("Data terpilih berhasil dihapus.");
+                 } catch (err) { alert("Gagal hapus masal: " + err.message); } 
+                 finally { setIsSaving(false); }
+             };
+
+             const downloadPeserta = () => {
+                 if (displayedTokens.length === 0) return alert("Tidak ada data untuk difilter.");
+                 const printWindow = window.open('', '_blank');
+                 const dateStr = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+                 
+                 let tableRowsHTML = '';
+                 displayedTokens.forEach((t, i) => {
+                     tableRowsHTML += `<tr><td class="text-center">${i + 1}</td><td style="text-transform: uppercase; font-weight: 600;">${t.participant_name || '-'}</td><td>${t.participant_school || '-'}</td><td class="text-center token-font">${t.code}</td><td class="text-center"><span class="status ${t.status === 'AVAILABLE' ? 'status-available' : 'status-used'}">${t.status}</span></td></tr>`;
+                 });
+
+                 const htmlContent = `
+                     <!DOCTYPE html><html><head><title>Data_Token_${downloadFilter.replace(/\s+/g, '_')}</title>
+                     <style>
+                         body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; padding: 20px; }
+                         .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1e293b; padding-bottom: 15px; }
+                         .header h2 { margin: 0 0 5px 0; color: #0f172a; font-size: 22px; text-transform: uppercase; letter-spacing: 1px; }
+                         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+                         th, td { border: 1px solid #cbd5e1; padding: 10px 12px; text-align: left; }
+                         th { background-color: #f8fafc; font-weight: bold; text-transform: uppercase; font-size: 11px; color: #475569; }
+                         .text-center { text-align: center; } .token-font { font-family: monospace; font-weight: bold; color: #2563eb; font-size: 14px; letter-spacing: 1px; }
+                         .status { font-weight: bold; font-size: 10px; padding: 3px 6px; border-radius: 4px; text-transform: uppercase; }
+                         .status-available { background-color: #d1fae5; color: #065f46; border: 1px solid #34d399; } .status-used { background-color: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
+                         @media print { @page { margin: 1.5cm; } body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+                     </style></head><body>
+                         <div class="header"><h2>Daftar Token Ujian Peserta</h2><p>Filter: <strong>${downloadFilter}</strong> &nbsp;|&nbsp; Unduh: ${dateStr}</p></div>
+                         <table><thead><tr><th class="text-center" style="width: 5%;">No</th><th style="width: 30%;">Nama Peserta</th><th style="width: 30%;">Asal Sekolah / Kelas</th><th class="text-center" style="width: 20%;">Token</th><th class="text-center" style="width: 15%;">Status</th></tr></thead>
+                         <tbody>${tableRowsHTML}</tbody></table>
+                         <script>window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); }<${'/'}script>
+                     </body></html>`;
+                 printWindow.document.open(); printWindow.document.write(htmlContent); printWindow.document.close();
+             };
+
+             const addManual = async () => {
+                 const name = prompt("Nama Peserta:"); if (!name) return;
+                 const school = prompt("Asal Sekolah:") || organizerName;
+                 const newCode = `TKA-${Math.random().toString(36).substring(2,6).toUpperCase()}`;
+                 setIsSaving(true);
+                 try { const db = await getSupabase(); await db.from('tokens').insert([{ code: newCode, status: 'AVAILABLE', participant_name: name, participant_school: school, generatedAt: new Date().toISOString() }]); fetchSupabaseData(); } catch(e) { alert(e.message); }
+                 setIsSaving(false);
+             };
+
+             const startMassEdit = () => {
+                 setEditFilter('Semua');
+                 if (selectedTokens.length > 0) {
+                     const tokensToEdit = displayedTokens.filter(t => selectedTokens.includes(t.code));
+                     setMassEditTokens(JSON.parse(JSON.stringify(tokensToEdit)));
+                 } else {
+                     setMassEditTokens(JSON.parse(JSON.stringify(displayedTokens)));
+                 }
+                 setSelectedTokens([]); setIsMassEdit(true);
+             };
+
+             const handleMassEditChange = (index, field, value) => {
+                 const updated = [...massEditTokens]; updated[index][field] = value; setMassEditTokens(updated);
+             };
+
+             const handleBulkEditStatus = (status) => {
+                 if (selectedTokens.length === 0) return alert("Pilih baris terlebih dahulu dengan mencentang kotak di kiri!");
+                 const updated = massEditTokens.map(t => selectedTokens.includes(t.code) ? { ...t, status } : t);
+                 setMassEditTokens(updated);
+             };
+
+             const saveMassEdit = async () => {
+                 setIsSaving(true);
+                 try {
+                     const db = await getSupabase();
+                     await db.from('tokens').upsert(massEditTokens.map(t => ({ code: t.code, status: t.status, participant_name: t.participant_name, participant_school: t.participant_school })));
+                     fetchSupabaseData(); setIsMassEdit(false); setSelectedTokens([]); alert("Data berhasil diperbarui!");
+                 } catch(e) { alert(e.message); }
+                 setIsSaving(false);
+             };
+
+             const deleteToken = async (code) => {
+                 if(!confirm(`Hapus token ${code}?`)) return;
+                 setIsSaving(true);
+                 try { const db = await getSupabase(); await db.from('tokens').delete().eq('code', code); fetchSupabaseData(); } catch(e) { alert(e.message); }
+                 setIsSaving(false);
+             };
+
+             return (
+               <AdminLayout title="Token Ujian">
+                 <div className="bg-white p-4 rounded-xl border mb-6 flex flex-wrap gap-3 items-center shadow-sm">
+                    {!isMassEdit ? (
+                        <>
+                            <button onClick={addManual} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center transition-colors"><Plus size={16} className="mr-2"/> Tambah Manual</button>
+                            <button onClick={() => setShowImport(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center transition-colors"><Upload size={16} className="mr-2"/> Unggah Peserta</button>
+                            <button onClick={startMassEdit} disabled={displayedTokens.length===0} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center transition-colors disabled:opacity-50">
+                                <Edit size={16} className="mr-2"/> {selectedTokens.length > 0 ? `Edit Terpilih (${selectedTokens.length})` : 'Edit'}
+                            </button>
+                            
+                            <div className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 ml-auto">
+                                <select value={sortOrder} onChange={e=>setSortOrder(e.target.value)} className="bg-white border border-slate-300 text-sm font-medium rounded-lg px-2 py-2.5 outline-none focus:border-blue-500 cursor-pointer">
+                                    <option value="DEFAULT">Urutan Acak</option><option value="NAME_ASC">Nama A-Z</option><option value="NAME_DESC">Nama Z-A</option>
+                                </select>
+                                <select value={downloadFilter} onChange={(e) => {setDownloadFilter(e.target.value); setSelectedTokens([]);}} className="bg-white border border-slate-300 text-sm font-medium rounded-lg px-2 py-2.5 outline-none focus:border-blue-500 cursor-pointer">
+                                    <option value="Semua">Semua Kelas/Sekolah</option>
+                                    {uniqueClasses.map((cls, idx) => <option key={idx} value={cls}>{cls}</option>)}
+                                </select>
+                                <button onClick={downloadPeserta} className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-4 py-2.5 rounded-lg font-bold text-sm transition-colors flex items-center border border-emerald-200"><i className="fas fa-file-pdf mr-2"></i> Cetak PDF</button>
+                            </div>
+                            
+                            {selectedTokens.length > 0 && <button onClick={handleDeleteSelected} disabled={isSaving} className="bg-red-50 text-red-700 hover:bg-red-100 px-4 py-2.5 rounded-xl font-bold text-sm border border-red-200 transition-colors flex items-center"><i className="fas fa-trash-alt mr-2"></i> Hapus Terpilih ({selectedTokens.length})</button>}
+                        </>
+                    ) : (
+                        <div className="w-full flex flex-wrap gap-2 items-center justify-between">
+                            <div className="flex gap-2">
+                                <button onClick={saveMassEdit} disabled={isSaving} className="bg-emerald-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-md"><Save size={16} className="inline mr-2"/> Simpan Perubahan</button>
+                                <button onClick={() => { setIsMassEdit(false); setSelectedTokens([]); }} className="bg-slate-200 text-slate-700 hover:bg-slate-300 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors">Batal</button>
+                            </div>
+                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 ml-auto">
+                                <select value={sortOrder} onChange={e=>setSortOrder(e.target.value)} className="bg-white border border-slate-300 text-sm font-medium rounded-lg px-2 py-1.5 outline-none focus:border-blue-500 cursor-pointer">
+                                    <option value="DEFAULT">Urutan Acak</option><option value="NAME_ASC">Nama A-Z</option><option value="NAME_DESC">Nama Z-A</option>
+                                </select>
+                                <select value={editFilter} onChange={e => {setEditFilter(e.target.value); setSelectedTokens([]);}} className="bg-white border border-slate-300 text-sm font-medium rounded-lg px-3 py-1.5 outline-none focus:border-blue-500 cursor-pointer">
+                                    <option value="Semua">Semua Kelas/Sekolah</option>
+                                    {uniqueEditClasses.map((cls, idx) => <option key={idx} value={cls}>{cls}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                    )}
+                 </div>
+                 
+                 {/* Modal Import (Dipersingkat tampilannya) */}
+                 {showImport && (
+                     <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-5">
+                            <div className="flex justify-between items-center mb-4"><h3 className="font-bold">Impor Peserta</h3><button onClick={()=>setShowImport(false)}><X size={18}/></button></div>
+                            <button onClick={() => {}} className="mb-4 bg-blue-50 border text-blue-700 px-4 py-2 rounded-lg text-sm font-semibold flex items-center"><FileText size={16} className="mr-2"/> Download Templat</button>
+                            <input type="file" accept=".csv" onChange={()=>{}} className="w-full p-4 border-2 border-dashed rounded-xl"/>
+                        </div>
+                     </div>
+                 )}
+                 
+                 <div className="bg-white rounded-xl border overflow-x-auto shadow-sm">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 border-b">
+                            <tr>
+                                <th className="p-4 text-center w-12"><input type="checkbox" className="w-4 h-4 cursor-pointer accent-blue-600 rounded" onChange={isMassEdit ? handleSelectAllEdit : handleSelectAll} checked={selectedTokens.length > 0 && selectedTokens.length === (isMassEdit ? displayedMassEditTokens.length : displayedTokens.length)} /></th>
+                                <th className="p-4 w-12 text-center">No</th><th className="p-4">Nama</th><th className="p-4">Sekolah/Kelas</th><th className="p-4">Token</th>
+                                {isMassEdit ? (
+                                    <th className="p-4 min-w-[160px]">Status
+                                        <select onChange={(e) => { if(e.target.value) handleBulkEditStatus(e.target.value); e.target.value=''; }} className="mt-1.5 w-full border border-slate-300 rounded text-xs font-bold text-blue-700 bg-blue-50 p-1.5 outline-none cursor-pointer">
+                                            <option value="">+ Set Terpilih</option><option value="AVAILABLE">AVAILABLE</option><option value="USED">USED</option><option value="EXPIRED">EXPIRED</option>
+                                        </select>
+                                    </th>
+                                ) : (<th className="p-4 text-center">Status</th>)}
+                                {!isMassEdit && <th className="p-4 text-center">Aksi</th>}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {isMassEdit ? (
+                                displayedMassEditTokens.map((t, idx) => {
+                                    const originalIndex = massEditTokens.findIndex(orig => orig.code === t.code);
+                                    return (
+                                        <tr key={t.code} className={`border-b ${selectedTokens.includes(t.code) ? 'bg-blue-50/60' : 'bg-white'}`}>
+                                            <td className="p-3 text-center"><input type="checkbox" className="w-4 h-4 cursor-pointer accent-blue-600 rounded" checked={selectedTokens.includes(t.code)} onChange={() => handleSelectToken(t.code)} /></td>
+                                            <td className="p-3 text-center text-slate-500 font-semibold">{idx+1}</td>
+                                            <td className="p-2"><input type="text" value={t.participant_name} onChange={e=>handleMassEditChange(originalIndex, 'participant_name', e.target.value)} className="w-full p-2 border border-blue-200 rounded text-sm outline-none focus:ring-1"/></td>
+                                            <td className="p-2"><input type="text" value={t.participant_school} onChange={e=>handleMassEditChange(originalIndex, 'participant_school', e.target.value)} className="w-full p-2 border border-blue-200 rounded text-sm outline-none focus:ring-1"/></td>
+                                            <td className="p-3 font-mono font-bold text-slate-500">{t.code}</td>
+                                            <td className="p-2"><select value={t.status} onChange={e=>handleMassEditChange(originalIndex, 'status', e.target.value)} className="w-full p-2 border border-blue-200 rounded text-xs font-bold outline-none cursor-pointer bg-white"><option value="AVAILABLE">AVAILABLE</option><option value="USED">USED</option><option value="EXPIRED">EXPIRED</option></select></td>
+                                        </tr>
+                                    );
+                                })
+                            ) : (
+                                displayedTokens.map((t, i) => (
+                                    <tr key={t.code} className={`border-b transition-colors ${selectedTokens.includes(t.code) ? 'bg-blue-50/40' : 'hover:bg-slate-50'}`}>
+                                        <td className="p-4 text-center"><input type="checkbox" className="w-4 h-4 cursor-pointer accent-blue-600 rounded" checked={selectedTokens.includes(t.code)} onChange={() => handleSelectToken(t.code)} /></td>
+                                        <td className="p-4 text-center text-slate-500 font-semibold">{i+1}</td>
+                                        <td className="p-4 font-semibold text-slate-800 uppercase">{t.participant_name || '-'}</td>
+                                        <td className="p-4 text-slate-600 font-medium">{t.participant_school || '-'}</td>
+                                        <td className="p-4 font-mono font-bold text-indigo-600">{t.code}</td>
+                                        <td className="p-4 text-center"><span className={`px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-wider ${t.status === 'AVAILABLE' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>{t.status}</span></td>
+                                        <td className="p-4 text-center"><button onClick={()=>deleteToken(t.code)} className="text-rose-500 p-2 hover:bg-rose-100 rounded transition-colors" title="Hapus"><Trash2 size={16}/></button></td>
+                                    </tr>
+                                ))
+                            )}
+                            {(isMassEdit ? displayedMassEditTokens : displayedTokens).length === 0 && <tr><td colSpan={isMassEdit ? 6 : 7} className="text-center py-8 text-slate-500 italic bg-slate-50">Belum ada data peserta.</td></tr>}
+                        </tbody>
+                    </table>
+                 </div>
+               </AdminLayout>
+             );
+          };
+
+          const AdminResults = () => {
+             const [selectedAnalysis, setSelectedAnalysis] = useState(null);
+             const [filterSchool, setFilterSchool] = useState('Semua');
+             const [filterFolder, setFilterFolder] = useState('Semua');
+             const [filterDate, setFilterDate] = useState('Semua');
+             const [sortOrder, setSortOrder] = useState('DEFAULT');
+             const [selectedResults, setSelectedResults] = useState([]);
+             const [isDeleting, setIsDeleting] = useState(false);
+
+             const getResultFolder = (r) => {
+                 const firstQId = r.detail?.detailedResults?.find(x => x.qId !== 'SYS_CHEATS')?.qId;
+                 if (!firstQId) return 'Utama';
+                 const q = questions.find(x => x.id === firstQId);
+                 return q ? (q.folder || 'Utama') : 'Utama';
+             };
+
+             const schoolList = ['Semua', ...new Set(results.map(r => r.participant?.school).filter(Boolean))];
+             const folderList = ['Semua', ...new Set(results.map(getResultFolder))];
+             const dateList = ['Semua', ...new Set(results.map(r => new Date(r.startTime).toLocaleDateString('id-ID')))];
+
+             let processedResults = results.filter(r => {
+                 const matchSchool = filterSchool === 'Semua' || r.participant?.school === filterSchool;
+                 const matchFolder = filterFolder === 'Semua' || getResultFolder(r) === filterFolder;
+                 const matchDate = filterDate === 'Semua' || new Date(r.startTime).toLocaleDateString('id-ID') === filterDate;
+                 return matchSchool && matchFolder && matchDate;
+             });
+
+             if (sortOrder === 'NAME_ASC') processedResults.sort((a, b) => (a.participant?.name || '').localeCompare(b.participant?.name || ''));
+             else if (sortOrder === 'NAME_DESC') processedResults.sort((a, b) => (b.participant?.name || '').localeCompare(a.participant?.name || ''));
+             else if (sortOrder === 'RANK_DESC') processedResults.sort((a, b) => b.score - a.score);
+             else if (sortOrder === 'RANK_ASC') processedResults.sort((a, b) => a.score - b.score);
+
+             const handleSelectAll = (e) => {
+                 if (e.target.checked) setSelectedResults(processedResults.map(r => r.id));
+                 else setSelectedResults([]);
+             };
+
+             const handleSelectResult = (id) => {
+                 if (selectedResults.includes(id)) setSelectedResults(selectedResults.filter(rid => rid !== id));
+                 else setSelectedResults([...selectedResults, id]);
+             };
+
+             const deleteResult = async (id) => {
+                 if(!confirm("Hapus hasil ujian peserta ini?")) return;
+                 try { const db = await getSupabase(); await db.from('results').delete().eq('id', id); fetchSupabaseData(); } catch(e) { alert("Gagal menghapus: " + e.message); }
+             };
+
+             const handleDeleteSelected = async () => {
+                 if (selectedResults.length === 0) return;
+                 if (!confirm(`Hapus permanen ${selectedResults.length} data ujian terpilih?`)) return;
+                 setIsDeleting(true);
+                 try {
+                     const db = await getSupabase();
+                     const { error } = await db.from('results').delete().in('id', selectedResults);
+                     if (error) throw error;
+                     await fetchSupabaseData(); setSelectedResults([]); alert("Data terpilih berhasil dihapus.");
+                 } catch (err) { alert("Gagal hapus masal: " + err.message); } finally { setIsDeleting(false); }
+             };
+
+             const downloadExcel = () => {
+                 if (processedResults.length === 0) return alert("Tidak ada data untuk diunduh.");
+                 let csvContent = "\uFEFFNo,Nama Peserta,Sekolah/Kelas,Folder Ujian,Skor Didapat,Total Maks Skor,Nilai Akhir (100),Waktu Mulai\n";
+                 
+                 processedResults.forEach((r, i) => {
+                     const name = r.participant?.name ? r.participant.name.replace(/"/g, '""') : '';
+                     const school = r.participant?.school ? r.participant.school.replace(/"/g, '""') : '';
+                     const folderName = getResultFolder(r);
+                     const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
+                     const earned = details.reduce((sum, d) => sum + (d.pointsEarned || 0), 0);
+                     const maxP = details.reduce((sum, d) => sum + (d.questionMaxPoints || 0), 0);
+                     const timeStr = new Date(r.startTime).toLocaleString('id-ID');
+                     csvContent += `${i + 1},"${name}","${school}","${folderName}",${earned},${maxP},${r.score},"${timeStr}"\n`;
+                 });
+                 
+                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                 const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
+                 link.download = `Hasil_Ujian_${filterSchool}_${filterFolder}_${new Date().getTime()}.csv`; link.click();
+             };
+
+             const downloadDetailPDF = () => {
+                 if (!selectedAnalysis) return;
+                 const printWindow = window.open('', '_blank');
+                 const studentName = selectedAnalysis.participant?.name || 'Siswa';
+                 
+                 let rowsHTML = '';
+                 
+                 const studentDetails = Array.isArray(selectedAnalysis.detail?.detailedResults) ? selectedAnalysis.detail.detailedResults.filter(x => x.qId !== 'SYS_CHEATS') : [];
+                 
+                 studentDetails.forEach((d, index) => {
+                     const q = questions.find(x => x.id === d.qId);
+                     if (!q) return;
+
+                     let ansDisplay = '<span style="color: #f59e0b; font-style: italic;">Tidak Menjawab</span>';
+                     let keyDisplay = '';
+                     
+                     if (q.type === 'MCQ') {
+                         const correctOpt = q.options?.find(o => o.id === q.correctAnswer);
+                         keyDisplay = `<div style="margin-top:8px; padding:6px; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:4px; font-size:11px; color:#065f46;"><strong>Kunci Jawaban: ${q.correctAnswer}</strong> - ${correctOpt?.text?.replace(/<[^>]+>/g, '') || q.correctAnswer}</div>`;
+                         if (!d.isEmpty && d.userAnswer) {
+                             const opt = q.options?.find(o => o.id === d.userAnswer);
+                             ansDisplay = `<strong>${d.userAnswer}.</strong> ${opt?.text?.replace(/<[^>]+>/g, '') || d.userAnswer}`;
+                         }
+                     } else if (q.type === 'MCMA') {
+                         const correctTexts = (q.correctAnswers||[]).map(ansId => {
+                             const stmt = q.statements?.find(s => String(s.id) === String(ansId));
+                             return `<li>${stmt?.text?.replace(/<[^>]+>/g, '') || ansId}</li>`;
+                         }).join('');
+                         keyDisplay = `<div style="margin-top:8px; padding:6px; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:4px; font-size:11px; color:#065f46;"><strong>Kunci (Pilih Semua):</strong><ul style="margin:4px 0 0; padding-left:16px;">${correctTexts}</ul></div>`;
+                         if (!d.isEmpty && Array.isArray(d.userAnswer)) {
+                             const userTexts = d.userAnswer.map(ansId => {
+                                 const stmt = q.statements?.find(s => String(s.id) === String(ansId));
+                                 return `<li>${stmt?.text?.replace(/<[^>]+>/g, '') || ansId}</li>`;
+                             }).join('');
+                             ansDisplay = `<ul style="margin:0; padding-left:16px;">${userTexts}</ul>`;
+                         }
+                     } else if (q.type === 'CATEGORY') {
+                         if (!d.isEmpty && d.userAnswer) {
+                             const keys = Object.keys(d.userAnswer);
+                             const listItems = keys.map(k => {
+                                 const stmt = q.statements?.find(s => String(s.id) === String(k));
+                                 const isCorrectLine = d.userAnswer[k] === stmt?.correctCategory;
+                                 const badgeColor = isCorrectLine ? '#10b981' : '#f43f5e';
+                                 return `<li style="margin-bottom:6px; padding:6px; border:1px solid #e2e8f0; background:#f8fafc; border-radius:4px; font-size:11px;">
+                                     <div style="font-size:10px; color:#64748b; margin-bottom:4px;">Pernyataan: <span style="color:#333;">${stmt?.text?.replace(/<[^>]+>/g, '') || k}</span></div>
+                                     <span style="background:${badgeColor}; color:white; padding:2px 4px; border-radius:3px; font-weight:bold;">${d.userAnswer[k]}</span>
+                                     <span style="color:#94a3b8; font-size:10px; margin-left:4px;">(Kunci: ${stmt?.correctCategory})</span>
+                                 </li>`;
+                             }).join('');
+                             ansDisplay = `<ul style="list-style:none; margin:0; padding:0;">${listItems}</ul>`;
+                         }
+                     }
+
+                     const earned = d.pointsEarned !== undefined ? d.pointsEarned : (d.isCorrect ? (q.type === 'MCMA' ? 2 : 1) : 0);
+                     const maxP = d.questionMaxPoints !== undefined ? d.questionMaxPoints : (q.type === 'MCMA' ? 2 : (q.type === 'CATEGORY' ? (q.statements||[]).length : 1));
+                     
+                     let badgeHtml = '';
+                     if (d.isEmpty) badgeHtml = '<span style="background:#fef3c7; color:#d97706; padding:3px 6px; border-radius:4px; font-size:9px; font-weight:bold; text-transform:uppercase; border:1px solid #fde68a;">KOSONG</span>';
+                     else if (earned === maxP) badgeHtml = '<span style="background:#d1fae5; color:#047857; padding:3px 6px; border-radius:4px; font-size:9px; font-weight:bold; text-transform:uppercase; border:1px solid #a7f3d0;">BENAR</span>';
+                     else if (earned > 0) badgeHtml = '<span style="background:#fef3c7; color:#b45309; padding:3px 6px; border-radius:4px; font-size:9px; font-weight:bold; text-transform:uppercase; border:1px solid #fde68a;">SEBAGIAN</span>';
+                     else badgeHtml = '<span style="background:#ffe4e6; color:#e11d48; padding:3px 6px; border-radius:4px; font-size:9px; font-weight:bold; text-transform:uppercase; border:1px solid #fecdd3;">SALAH</span>';
+
+                     rowsHTML += `
+                         <tr>
+                             <td style="text-align:center; font-weight:bold; color:#94a3b8;">${index + 1}</td>
+                             <td><div style="font-size:13px; color:#1e293b; line-height:1.5;">${q.question}</div>${keyDisplay}</td>
+                             <td style="font-size:13px; color:#334155;">${ansDisplay}</td>
+                             <td style="text-align:center;">
+                                 <div style="font-size:16px; font-weight:900; color:#0f172a;">${earned} <span style="font-size:10px; color:#94a3b8; font-weight:normal;">/ ${maxP}</span></div>
+                                 <div style="margin-top:6px;">${badgeHtml}</div>
+                             </td>
+                         </tr>
+                     `;
+                 });
+
+                 const htmlContent = `
+                     <!DOCTYPE html>
+                     <html>
+                     <head>
+                         <title>Detail_Jawaban_${studentName.replace(/\s+/g, '_')}</title>
+                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+                         <style>
+                             body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 20px; color:#333; }
+                             .header { text-align: center; border-bottom: 2px solid #1e293b; padding-bottom: 15px; margin-bottom: 25px; }
+                             .header h2 { margin: 0; color: #0f172a; text-transform: uppercase; font-size: 22px; letter-spacing:1px; }
+                             .header p { margin: 8px 0 0; color: #64748b; font-size: 14px; }
+                             table { width: 100%; border-collapse: collapse; }
+                             th, td { border: 1px solid #cbd5e1; padding: 12px; vertical-align: top; }
+                             th { background-color: #f8fafc; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing:0.5px; }
+                             img { max-width: 100%; height: auto; max-height: 200px; border-radius: 4px; display: block; margin: 8px 0; }
+                             @media print { 
+                                 @page { margin: 1cm; }
+                                 body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                             }
+                         </style>
+                     </head>
+                     <body>
+                         <div class="header">
+                             <h2>Laporan Detail Jawaban Siswa</h2>
+                             <p>Nama Peserta: <strong style="color:#0f172a;">${studentName}</strong> &nbsp;|&nbsp; Asal Sekolah: <strong style="color:#0f172a;">${selectedAnalysis.participant?.school || '-'}</strong> &nbsp;|&nbsp; Nilai Akhir: <strong style="color:#059669; font-size:16px;">${selectedAnalysis.score}</strong></p>
+                         </div>
+                         <table>
+                             <thead>
+                                 <tr>
+                                     <th style="width:5%;">No</th>
+                                     <th style="width:45%; text-align:left;">Pertanyaan & Kunci Asli</th>
+                                     <th style="width:35%; text-align:left;">Pilihan Siswa</th>
+                                     <th style="width:15%;">Skor</th>
+                                 </tr>
+                             </thead>
+                             <tbody>${rowsHTML}</tbody>
+                         </table>
+                         <script>
+                             window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 800); }
+                         <${'/'}script>
+                     </body>
+                     </html>
+                 `;
+                 printWindow.document.open();
+                 printWindow.document.write(htmlContent);
+                 printWindow.document.close();
+             };
+
+             return (
+               <AdminLayout title="Manajemen Hasil Ujian">
+                 <div className="mb-6 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-4 rounded-xl border shadow-sm">
+                     <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+                         <div className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 p-1.5 rounded-lg w-full sm:w-auto">
+                             <select value={filterSchool} onChange={e=>{setFilterSchool(e.target.value); setSelectedResults([]);}} className="border-none py-1 px-2 text-sm bg-transparent font-semibold outline-none cursor-pointer text-slate-700">
+                                 {schoolList.map(s => <option key={s} value={s}>{s === 'Semua' ? 'Sekolah: Semua' : s}</option>)}
+                             </select>
+                             <div className="w-px h-5 bg-slate-300 hidden sm:block"></div>
+                             <select value={filterFolder} onChange={e=>{setFilterFolder(e.target.value); setSelectedResults([]);}} className="border-none py-1 px-2 text-sm bg-transparent font-semibold outline-none cursor-pointer text-blue-700">
+                                 {folderList.map(f => <option key={f} value={f}>{f === 'Semua' ? 'Folder: Semua' : f}</option>)}
+                             </select>
+                             <div className="w-px h-5 bg-slate-300 hidden sm:block"></div>
+                             <select value={filterDate} onChange={e=>{setFilterDate(e.target.value); setSelectedResults([]);}} className="border-none py-1 px-2 text-sm bg-transparent font-semibold outline-none cursor-pointer text-emerald-700">
+                                 {dateList.map(d => <option key={d} value={d}>{d === 'Semua' ? 'Tanggal: Semua' : d}</option>)}
+                             </select>
+                         </div>
+                         <select value={sortOrder} onChange={e=>setSortOrder(e.target.value)} className="border border-slate-300 rounded-lg p-2 text-sm bg-white font-semibold outline-none cursor-pointer">
+                             <option value="DEFAULT">Urutan Terbaru</option><option value="NAME_ASC">Nama A-Z</option><option value="NAME_DESC">Nama Z-A</option><option value="RANK_DESC">Ranking Tertinggi</option><option value="RANK_ASC">Ranking Terendah</option>
+                         </select>
+                         
+                         {selectedResults.length > 0 && (
+                             <button onClick={handleDeleteSelected} disabled={isDeleting} className="bg-rose-50 text-rose-700 border border-rose-200 px-4 py-2 rounded-lg text-sm font-bold flex items-center hover:bg-rose-100 transition-colors shadow-sm">
+                                 <Trash2 size={16} className="mr-2"/> Hapus ({selectedResults.length})
+                             </button>
+                         )}
+                     </div>
+                     <div className="flex gap-2 w-full xl:w-auto">
+                         <button onClick={downloadExcel} className="flex-1 sm:flex-none bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center hover:bg-emerald-100 transition-colors shadow-sm"><i className="fas fa-file-excel mr-2"></i> Unduh Excel</button>
+                         <button onClick={fetchSupabaseData} className="flex-1 sm:flex-none bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center hover:bg-blue-100 transition-colors shadow-sm" title="Refresh"><i className="fas fa-sync-alt"></i></button>
+                     </div>
+                 </div>
+
+                 {selectedAnalysis && (
+                    <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
+                            <div className="bg-slate-50 border-b px-5 py-4 flex justify-between items-center">
+                                <h3 className="font-bold text-slate-800">Detail Jawaban: {selectedAnalysis.participant?.name}</h3>
+                                <div className="flex items-center gap-3">
+                                    <button onClick={downloadDetailPDF} className="text-xs bg-emerald-100 text-emerald-700 border border-emerald-300 hover:bg-emerald-200 px-3 py-1.5 rounded-md font-bold flex items-center transition-colors shadow-sm">
+                                        <i className="fas fa-file-pdf mr-1.5"></i> Download PDF
+                                    </button>
+                                    <button onClick={() => setSelectedAnalysis(null)} className="text-slate-400 hover:text-slate-800 transition-colors"><X size={20}/></button>
+                                </div>
+                            </div>
+                            <div className="p-0 overflow-y-auto flex-1">
+                                <table className="w-full text-left text-sm border-collapse">
+                                    <thead className="bg-slate-100 border-b sticky top-0 shadow-sm z-10">
+                                        <tr><th className="p-4 w-12 text-center text-slate-600">No</th><th className="p-4 text-slate-600">Pertanyaan & Kunci Asli</th><th className="p-4 w-64 text-slate-600 border-l border-r border-slate-200 bg-blue-50/30">Pilihan Siswa</th><th className="p-4 w-28 text-center text-slate-600">Skor</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        {(Array.isArray(selectedAnalysis.detail?.detailedResults) ? selectedAnalysis.detail.detailedResults.filter(x => x.qId !== 'SYS_CHEATS') : []).map((d, index) => {
+                                            const q = questions.find(x => x.id === d.qId);
+                                            if (!q) return null;
+
+                                            let ansDisplay = <span className="text-amber-500 italic font-semibold">Tidak Menjawab</span>;
+                                            let keyDisplay = null;
+                                            
+                                            if (q.type === 'MCQ') {
+                                                const correctOpt = q.options?.find(o => o.id === q.correctAnswer);
+                                                const tmpK = document.createElement("div"); tmpK.innerHTML = correctOpt?.text || q.correctAnswer;
+                                                keyDisplay = <div className="mt-3 p-2 bg-emerald-50 rounded border border-emerald-100 text-xs text-slate-700 font-medium"><strong className="text-emerald-700">Kunci Jawaban: {q.correctAnswer}</strong> - {tmpK.textContent}</div>;
+                                                if (!d.isEmpty && d.userAnswer) {
+                                                    const opt = q.options?.find(o => o.id === d.userAnswer);
+                                                    const tmp = document.createElement("div"); tmp.innerHTML = opt?.text || d.userAnswer;
+                                                    ansDisplay = <div className="font-medium text-slate-800"><strong className="text-blue-600">{d.userAnswer}.</strong> {tmp.textContent}</div>;
+                                                }
+                                            } else if (q.type === 'MCMA') {
+                                                const correctTexts = (q.correctAnswers||[]).map(ansId => {
+                                                    const stmt = q.statements?.find(s => String(s.id) === String(ansId));
+                                                    const t = document.createElement("div"); t.innerHTML = stmt?.text || ansId; return t.textContent;
+                                                });
+                                                keyDisplay = <div className="mt-3 p-2 bg-emerald-50 rounded border border-emerald-100 text-xs text-slate-700 font-medium"><strong className="text-emerald-700 block mb-1">Kunci (Pilih Semua):</strong> <ul className="list-disc pl-4">{correctTexts.map((txt, ii)=><li key={ii}>{txt}</li>)}</ul></div>;
+                                                if (!d.isEmpty && Array.isArray(d.userAnswer)) {
+                                                    ansDisplay = <ul className="list-disc pl-4 space-y-1">{d.userAnswer.map(ansId => {
+                                                        const stmt = q.statements?.find(s => String(s.id) === String(ansId)); const tmp = document.createElement("div"); tmp.innerHTML = stmt?.text || ansId;
+                                                        return <li key={ansId} className="text-xs font-medium text-slate-700">{tmp.textContent}</li>;
+                                                    })}</ul>;
+                                                }
+                                            } else if (q.type === 'CATEGORY') {
+                                                if (!d.isEmpty && d.userAnswer) {
+                                                    const keys = Object.keys(d.userAnswer);
+                                                    ansDisplay = <ul className="space-y-2">{keys.map(k => {
+                                                        const stmt = q.statements?.find(s => String(s.id) === String(k)); const tmp = document.createElement("div"); tmp.innerHTML = stmt?.text || k;
+                                                        const isCorrectLine = d.userAnswer[k] === stmt?.correctCategory;
+                                                        return <li key={k} className="text-xs text-slate-600 bg-slate-50 p-2 rounded border leading-snug"><div className="mb-1 text-[10px] font-bold text-slate-400">Pernyataan: <span className="text-slate-700 font-medium">{tmp.textContent}</span></div> <span className={`font-bold px-1.5 py-0.5 rounded text-white ${isCorrectLine ? 'bg-emerald-500' : 'bg-rose-500'}`}>{d.userAnswer[k]}</span> <span className="text-slate-400 ml-1">(Kunci: {stmt?.correctCategory})</span></li>;
+                                                    })}</ul>;
+                                                }
+                                            }
+
+                                            const earned = d.pointsEarned !== undefined ? d.pointsEarned : (d.isCorrect ? (q.type === 'MCMA' ? 2 : 1) : 0);
+                                            const maxP = d.questionMaxPoints !== undefined ? d.questionMaxPoints : (q.type === 'MCMA' ? 2 : (q.type === 'CATEGORY' ? (q.statements||[]).length : 1));
+
+                                            return (
+                                                <tr key={q.id} className="border-b border-slate-100 hover:bg-slate-50">
+                                                    <td className="p-4 text-center font-bold text-slate-400 align-top">{index + 1}</td>
+                                                    <td className="p-4 align-top"><div className="line-clamp-4 text-slate-800 text-sm font-medium" dangerouslySetInnerHTML={{__html: q.question}} />{keyDisplay}</td>
+                                                    <td className="p-4 align-top border-l border-r border-slate-100 bg-blue-50/10">{ansDisplay}</td>
+                                                    <td className="p-4 text-center align-top">
+                                                        {d.isEmpty ? <span className="text-amber-500 font-bold text-xs bg-amber-50 px-2 py-1 rounded border border-amber-200">KOSONG</span> : 
+                                                            <div className="flex flex-col items-center">
+                                                                <span className="font-black text-slate-800 text-lg">{earned} <span className="text-slate-400 font-medium text-xs">/ {maxP}</span></span>
+                                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded mt-1 uppercase tracking-wider ${earned === maxP ? 'bg-emerald-100 text-emerald-700' : (earned > 0 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700')}`}>{earned === maxP ? 'BENAR' : (earned > 0 ? 'SEBAGIAN' : 'SALAH')}</span>
+                                                            </div>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                 )}
+                 
+                 <div className="bg-white rounded-xl border overflow-x-auto shadow-sm">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 border-b">
+                            <tr>
+                                <th className="p-4 text-center w-12"><input type="checkbox" className="w-4 h-4 cursor-pointer accent-blue-600 rounded" onChange={handleSelectAll} checked={selectedResults.length > 0 && selectedResults.length === processedResults.length} /></th>
+                                <th className="p-4 w-12 text-center">No</th>
+                                <th className="p-4">Nama Peserta</th>
+                                <th className="p-4">Sekolah/Kelas</th>
+                                <th className="p-4">Tipe Soal</th>
+                                <th className="p-4 text-center" title="Skor Poin yang didapat">Skor</th>
+                                <th className="p-4 text-center" title="Nilai Skala 100">Nilai</th>
+                                <th className="p-4 text-center">Analisis</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {processedResults.map((r, idx)=> {
+                                const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
+                                const earned = details.reduce((sum, d) => sum + (d.pointsEarned || 0), 0);
+                                const maxP = details.reduce((sum, d) => sum + (d.questionMaxPoints || 0), 0);
+                                const folderName = getResultFolder(r);
+                                return (
+                                <tr key={r.id} className={`border-b transition-colors ${selectedResults.includes(r.id) ? 'bg-blue-50/40' : 'hover:bg-slate-50'}`}>
+                                    <td className="p-4 text-center"><input type="checkbox" className="w-4 h-4 cursor-pointer accent-blue-600 rounded" checked={selectedResults.includes(r.id)} onChange={() => handleSelectResult(r.id)} /></td>
+                                    <td className="p-4 text-center font-semibold text-slate-500">{idx + 1}</td>
+                                    <td className="p-4 font-bold text-slate-800 uppercase">{r.participant?.name}</td>
+                                    <td className="p-4 font-medium text-slate-600">{r.participant?.school}</td>
+                                    <td className="p-4 font-semibold text-blue-600">{folderName}</td>
+                                    <td className="p-4 text-center"><div className="font-bold text-slate-700">{earned} <span className="text-xs text-slate-400 font-normal">/ {maxP}</span></div></td>
+                                    <td className="p-4 text-center font-black text-emerald-600 text-lg">{r.score}</td>
+                                    <td className="p-4 text-center"><button onClick={() => setSelectedAnalysis(r)} className="text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors shadow-sm">Lihat Detail</button></td>
+                                </tr>
+                            )})}
+                            {processedResults.length === 0 && <tr><td colSpan="8" className="text-center p-8 text-slate-500 font-bold bg-slate-50">Belum ada data hasil ujian yang masuk.</td></tr>}
+                        </tbody>
+                    </table>
+                 </div>
+               </AdminLayout>
+             );
+          };
+
+          const AdminQuestions = () => {
+            const [isSaving, setIsSaving] = useState(false);
+            const [view, setViewLocal] = useState(window.savedAdminView || 'folders'); 
+            const [filterFolder, setFilterFolderLocal] = useState(window.savedAdminFolder || 'Utama');
+            const setView = (v) => { window.savedAdminView = v; setViewLocal(v); };
+            const setFilterFolder = (f) => { window.savedAdminFolder = f; setFilterFolderLocal(f); };
+            const [showImport, setShowImport] = useState(false);
+            const [fileError, setFileError] = useState('');
+
+            const defaultMCQ = { id: '', type: 'MCQ', folder: filterFolder, points: 1, question: '', options: [{id:'A', text:''}, {id:'B', text:''}, {id:'C', text:''}, {id:'D', text:''}], correctAnswer: 'A' };
+            const defaultMCMA = { id: '', type: 'MCMA', folder: filterFolder, points: 2, question: '', statements: [{id:1, text:''}, {id:2, text:''}], correctAnswers: [] };
+            const defaultCAT = { id: '', type: 'CATEGORY', folder: filterFolder, points: 3, question: '', statements: [{id:1, text:'', category1:'Benar', category2:'Salah', correctCategory:'Benar'}, {id:2, text:'', category1:'Benar', category2:'Salah', correctCategory:'Benar'}, {id:3, text:'', category1:'Benar', category2:'Salah', correctCategory:'Benar'}] };
+            
+            const [formData, setFormData] = useState(defaultMCQ);
+
+            const downloadTemplateCSV = () => {
+                const csvContent = "Mapel,Pertanyaan,Opsi A,Opsi B,Opsi C,Opsi D,Kunci\nBahasa Indonesia,Ibu kota Indonesia adalah?,Jakarta,Bandung,Surabaya,Medan,A\n";
+                const link = document.createElement("a");
+                link.setAttribute("href", URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })));
+                link.setAttribute("download", "Template_Bank_Soal.csv");
+                document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            };
+
+            const downloadTemplateJSON = () => {
+                const jsonTemplate = [
+                    {
+                        "type": "MCQ",
+                        "points": 1,
+                        "question": "Siapa penemu lampu pijar?",
+                        "options": [
+                            {"id": "A", "text": "Thomas Edison"},
+                            {"id": "B", "text": "Albert Einstein"},
+                            {"id": "C", "text": "Nikola Tesla"},
+                            {"id": "D", "text": "Isaac Newton"}
+                        ],
+                        "correctAnswer": "A"
+                    },
+                    {
+                        "type": "MCMA",
+                        "points": 2,
+                        "question": "Pilih dua hewan mamalia:",
+                        "statements": [
+                            {"id": 1, "text": "Kucing"},
+                            {"id": 2, "text": "Ayam"},
+                            {"id": 3, "text": "Sapi"},
+                            {"id": 4, "text": "Ular"}
+                        ],
+                        "correctAnswers": [1, 3]
+                    },
+                    {
+                        "type": "CATEGORY",
+                        "points": 3,
+                        "question": "Tentukan Benar atau Salah pernyataan di bawah ini:",
+                        "statements": [
+                            {"id": 1, "text": "Ibukota Jawa Tengah adalah Semarang", "category1": "Benar", "category2": "Salah", "correctCategory": "Benar"},
+                            {"id": 2, "text": "Ikan bernapas dengan paru-paru", "category1": "Benar", "category2": "Salah", "correctCategory": "Salah"}
+                        ]
+                    }
+                ];
+                const link = document.createElement("a");
+                link.setAttribute("href", URL.createObjectURL(new Blob([JSON.stringify(jsonTemplate, null, 4)], { type: 'application/json;charset=utf-8;' })));
+                link.setAttribute("download", "Template_Bank_Soal_Lengkap.json");
+                document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            };
+
+            const handleUploadSoal = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setFileError('');
+                
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const fileContent = event.target.result;
+                    let payloads = [];
+
+                    try {
+                        if (file.name.toLowerCase().endsWith('.json')) {
+                            const parsedData = JSON.parse(fileContent);
+                            if (!Array.isArray(parsedData)) throw new Error("Format salah: File JSON harus berwujud Array '[ { ... } ]'.");
+                            
+                            payloads = parsedData.map((q, i) => {
+                                if (!['MCQ', 'MCMA', 'CATEGORY'].includes(q.type)) throw new Error(`Tipe soal '${q.type}' pada item ke-${i+1} tidak valid.`);
+                                return {
+                                    id: `q${Date.now()}_${i}`,
+                                    type: q.type, 
+                                    folder: filterFolder,
+                                    points: parseInt(q.points) || (q.type === 'MCQ' ? 1 : q.type === 'MCMA' ? 2 : 3),
+                                    question: q.question || 'Tanpa Pertanyaan',
+                                    options: q.options || null,
+                                    correctAnswer: q.correctAnswer || null,
+                                    statements: q.statements || null,
+                                    correctAnswers: q.correctAnswers || null
+                                };
+                            });
+                        } else if (file.name.toLowerCase().endsWith('.csv')) {
+                            const lines = fileContent.split('\n').filter(l => l.trim() !== '');
+                            for (let i = (lines[0].toLowerCase().includes('mapel') ? 1 : 0); i < lines.length; i++) {
+                                const cols = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(',');
+                                const cleanCol = (col) => col ? col.replace(/(^"|"$)/g, '').replace(/""/g, '"').trim() : '';
+                                
+                                if (cols.length >= 7) {
+                                    payloads.push({
+                                        id: `q${Date.now()}_${i}`,
+                                        type: 'MCQ', 
+                                        folder: filterFolder,
+                                        points: 1,
+                                        question: cleanCol(cols[1]),
+                                        options: [
+                                            { id: 'A', text: cleanCol(cols[2]) },
+                                            { id: 'B', text: cleanCol(cols[3]) },
+                                            { id: 'C', text: cleanCol(cols[4]) },
+                                            { id: 'D', text: cleanCol(cols[5]) }
+                                        ],
+                                        correctAnswer: cleanCol(cols[6]).toUpperCase()
+                                    });
+                                }
+                            }
+                        } else {
+                            throw new Error("Sistem hanya menerima file .csv atau .json");
+                        }
+
+                        if (payloads.length === 0) throw new Error("Data soal kosong atau format tidak sesuai template.");
+
+                        setIsSaving(true);
+                        const db = await getSupabase();
+                        const { error } = await db.from('questions').insert(payloads);
+                        if (error) throw error;
+                        
+                        setShowImport(false); 
+                        fetchSupabaseData(); 
+                        alert(`Berhasil mengimpor ${payloads.length} soal!`);
+                        
+                    } catch(err) { 
+                        setFileError(err.message); 
+                    } finally { 
+                        setIsSaving(false); 
+                        e.target.value = null; 
+                    }
+                };
+                reader.readAsText(file);
+            };
+              
+            const saveQuestion = async (e) => {
+               e.preventDefault();
+               setIsSaving(true);
+               try {
+                 const db = await getSupabase();
+                 
+                 let payload = { 
+                    id: formData.id || `q${Date.now()}`,
+                    type: formData.type,
+                    folder: formData.folder || filterFolder,
+                    points: formData.points,
+                    question: formData.question
+                 };
+
+                 if (formData.type === 'MCQ') {
+                     payload.options = formData.options;
+                     payload.correctAnswer = formData.correctAnswer;
+                 } else if (formData.type === 'MCMA') {
+                     payload.statements = formData.statements;
+                     payload.correctAnswers = formData.correctAnswers;
+                 } else if (formData.type === 'CATEGORY') {
+                     payload.statements = formData.statements;
+                 }
+
+                 if(!formData.id) { 
+                    const { error } = await db.from('questions').insert([payload]);
+                    if (error) throw error;
+                 } else { 
+                    const { error } = await db.from('questions').update(payload).eq('id', payload.id);
+                    if (error) throw error;
+                 }
+                 
+                 setFilterFolder(payload.folder);
+                 setView('list');
+                 
+                 await fetchSupabaseData(); 
+                 alert("Soal berhasil disimpan!");
+                 
+               } catch (err) { 
+                 alert("GAGAL MENYIMPAN KE DATABASE!\n" + err.message); 
+               } finally { 
+                 setIsSaving(false); 
+               }
+            };
+
+            const deleteQuestion = async (id) => {
+                if(!confirm("Hapus soal ini?")) return;
+                try { 
+                    const db = await getSupabase(); 
+                    const { error } = await db.from('questions').delete().eq('id', id); 
+                    if (error) throw error;
+                    
+                    setView('list');
+                    await fetchSupabaseData(); 
+                } catch(e) { alert("Gagal menghapus dari database: " + e.message); }
+            };
+
+            const duplicateQuestion = async (q) => {
+                if(!confirm("Duplikasi soal ini?")) return;
+                setIsSaving(true);
+                try {
+                    const db = await getSupabase();
+                    const duplicatedQ = { ...q, id: `q${Date.now()}_copy` };
+                    const { error } = await db.from('questions').insert([duplicatedQ]);
+                    if (error) throw error;
+                    
+                    setFilterFolder(q.folder || filterFolder);
+                    setView('list');
+                    await fetchSupabaseData(); 
+                } catch(e) { 
+                    alert("Gagal menduplikasi: " + e.message); 
+                }
+                setIsSaving(false);
+            };
+
+            const publishFolder = async (fname) => {
+                try {
+                    const db = await getSupabase();
+                    const { data, error: checkErr } = await db.from('tokens').select('code').eq('code', 'SYS_SETTING_FOLDER').maybeSingle();
+                    if (checkErr && checkErr.code !== 'PGRST116') throw checkErr;
+                    
+                    if (data) {
+                        const { error } = await db.from('tokens').update({ status: fname }).eq('code', 'SYS_SETTING_FOLDER');
+                        if (error) throw error;
+                    } else {
+                        const { error } = await db.from('tokens').insert([{ code: 'SYS_SETTING_FOLDER', status: fname, generatedAt: new Date().toISOString() }]);
+                        if (error) throw error;
+                    }
+                    setActiveFolder(fname);
+                    alert(`Folder "${fname}" berhasil diterbitkan ke peserta!`);
+                } catch(e) { alert("Gagal terbit: " + e.message); }
+            };
+
+            const folderStats = questions.reduce((acc, q) => { const f = q.folder || 'Utama'; acc[f] = (acc[f] || 0) + 1; return acc; }, {});
+            tokens.forEach(t => { if (t.code && t.code.startsWith('SYS_FOLDER_') && folderStats[t.status] === undefined) { folderStats[t.status] = 0; } });
+            if (folderStats['Utama'] === undefined) folderStats['Utama'] = 0;
+
+            const createFolder = async () => {
+                const fname = prompt("Masukkan Nama Folder Baru:\n(Contoh: Tryout 1, STS Ganjil)");
+                if (fname && fname.trim() !== '') {
+                    const folderName = fname.trim();
+                    setIsSaving(true);
+                    try {
+                        const db = await getSupabase();
+                        const { error } = await db.from('tokens').insert([{ code: `SYS_FOLDER_${Date.now()}`, status: folderName, generatedAt: new Date().toISOString(), participant_name: 'SYSTEM_FOLDER' }]);
+                        if (error) throw error;
+                        await fetchSupabaseData();
+                        setFilterFolder(folderName); setView('list');
+                        alert("Folder berhasil dibuat!");
+                    } catch(e) { alert("Gagal menyimpan folder: " + e.message); }
+                    setIsSaving(false);
+                }
+            };
+
+            const editFolder = async (oldName) => {
+                const newName = prompt(`Ubah nama folder "${oldName}" menjadi:`, oldName);
+                if (newName && newName.trim() !== '' && newName.trim() !== oldName) {
+                    setIsSaving(true);
+                    try {
+                        const db = await getSupabase();
+                        const folderToken = tokens.find(t => t.code && t.code.startsWith('SYS_FOLDER_') && t.status === oldName);
+                        if (folderToken) { 
+                            const { error: err1 } = await db.from('tokens').update({ status: newName.trim() }).eq('code', folderToken.code); 
+                            if (err1) throw err1;
+                        }
+                        const { error: err2 } = await db.from('questions').update({ folder: newName.trim() }).eq('folder', oldName);
+                        if (err2) throw err2;
+                        
+                        if (activeFolder === oldName) { 
+                            const { error: err3 } = await db.from('tokens').update({ status: newName.trim() }).eq('code', 'SYS_SETTING_FOLDER'); 
+                            if (err3) throw err3;
+                            setActiveFolder(newName.trim()); 
+                        }
+                        await fetchSupabaseData(); setFilterFolder(newName.trim());
+                        alert("Nama folder berhasil diubah di database!");
+                    } catch(e) { alert("Gagal ubah folder: " + e.message); }
+                    setIsSaving(false);
+                }
+            };
+
+            const deleteFolder = async (fname) => {
+                if (fname === 'Utama') { alert("Folder Utama tidak dapat dihapus."); return; }
+                if (!confirm(`Hapus folder "${fname}" beserta seluruh soal di dalamnya secara permanen?`)) return;
+                setIsSaving(true);
+                try {
+                    const db = await getSupabase();
+                    const folderToken = tokens.find(t => t.code && t.code.startsWith('SYS_FOLDER_') && t.status === fname);
+                    if (folderToken) { 
+                        const { error: err1 } = await db.from('tokens').delete().eq('code', folderToken.code); 
+                        if (err1) throw err1;
+                    }
+                    const { error: err2 } = await db.from('questions').delete().eq('folder', fname);
+                    if (err2) throw err2;
+                    
+                    if (activeFolder === fname) { 
+                        const { error: err3 } = await db.from('tokens').update({ status: 'Utama' }).eq('code', 'SYS_SETTING_FOLDER'); 
+                        if (err3) throw err3;
+                        setActiveFolder('Utama'); 
+                    }
+                    await fetchSupabaseData(); setFilterFolder('Utama'); setView('folders');
+                    alert("Folder beserta isinya berhasil dihapus dari database!");
+                } catch(e) { alert("Gagal hapus folder: " + e.message); }
+                setIsSaving(false);
+            };
+
+            if (view === 'create' || view === 'edit') {
+               const availableFolders = [...new Set([...questions.map(q => q.folder || 'Utama'), ...tokens.filter(t => t.code && t.code.startsWith('SYS_FOLDER_')).map(t => t.status), filterFolder, 'Utama'])];
+               return (
+                 <AdminLayout title="Editor Soal">
+                    <div className="bg-white rounded-xl shadow-sm border max-w-4xl mx-auto p-6 mb-10">
+                        <form onSubmit={saveQuestion} className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border">
+                                <div>
+                                    <label className="block text-sm font-semibold mb-1 text-slate-700">Tipe Soal</label>
+                                    <select value={formData.type} onChange={e => {
+                                        const t = e.target.value;
+                                        if(t === 'MCQ') setFormData({...defaultMCQ, folder: formData.folder, points: 1, question: formData.question});
+                                        else if(t === 'MCMA') setFormData({...defaultMCMA, folder: formData.folder, points: 2, question: formData.question});
+                                        else if(t === 'CATEGORY') setFormData({...defaultCAT, folder: formData.folder, points: 3, question: formData.question});
+                                    }} className="w-full p-2.5 border rounded-lg bg-white text-sm font-medium focus:ring-2 focus:ring-blue-500">
+                                        <option value="MCQ">Pilihan Ganda (A-D)</option>
+                                        <option value="MCMA">Pilihan Ganda Kompleks (&gt; 1 Jawaban)</option>
+                                        <option value="CATEGORY">Matriks Kategori (Benar/Salah)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold mb-1 text-slate-700">Pilih Folder Ujian</label>
+                                    <select value={formData.folder || filterFolder} onChange={e => setFormData({...formData, folder: e.target.value})} className="w-full p-2.5 border rounded-lg bg-white text-sm font-medium focus:ring-2 focus:ring-blue-500">
+                                        {availableFolders.map(f => <option key={f} value={f}>{f}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold mb-1 text-slate-700">Bobot Nilai</label>
+                                    <input type="number" min="1" value={formData.points} onChange={e => setFormData({...formData, points: parseInt(e.target.value)})} className="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"/>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-slate-800 mb-2">Pertanyaan Utama</label>
+                                <RichTextEditor value={formData.question} onChange={val => setFormData({...formData, question: val})} />
+                            </div>
+
+                            {/* EDITOR UNTUK PILIHAN GANDA (MCQ) DENGAN RICH TEXT */}
+                            {formData.type === 'MCQ' && (
+                                <div className="space-y-4 pt-4 border-t">
+                                    <h3 className="font-bold text-slate-800 mb-2">Opsi Jawaban (A-D)</h3>
+                                    {formData.options.map((opt, idx) => (
+                                        <div key={opt.id} className="flex gap-3 items-start">
+                                            <span className="font-bold w-6 pt-3 text-lg text-slate-500">{opt.id}.</span>
+                                            <div className="flex-1">
+                                                <RichTextEditor minHeight="60px" value={opt.text} onChange={val => { const o = [...formData.options]; o[idx].text = val; setFormData({...formData, options: o}); }} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 mt-4 flex items-center justify-between">
+                                        <label className="font-bold text-emerald-800">Kunci Jawaban Benar:</label>
+                                        <select value={formData.correctAnswer} onChange={e => setFormData({...formData, correctAnswer: e.target.value})} className="p-2 border-2 border-emerald-400 rounded-lg font-bold text-emerald-700 w-32 text-center bg-white"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* EDITOR UNTUK GANDA KOMPLEKS (MCMA) */}
+                            {formData.type === 'MCMA' && (
+                                <div className="space-y-4 pt-4 border-t">
+                                    <div className="flex justify-between items-center"><h3 className="font-bold text-slate-800">Pernyataan (Pilih Jawaban Benar)</h3></div>
+                                    {formData.statements.map((stmt, idx) => (
+                                        <div key={stmt.id} className="flex gap-3 items-start border p-3 rounded-xl bg-slate-50">
+                                            <div className="pt-2">
+                                                <input type="checkbox" checked={formData.correctAnswers.includes(stmt.id)} onChange={e => {
+                                                    let ans = [...formData.correctAnswers];
+                                                    if(e.target.checked) ans.push(stmt.id); else ans = ans.filter(x => x !== stmt.id);
+                                                    setFormData({...formData, correctAnswers: ans});
+                                                }} className="w-5 h-5 text-blue-600 rounded cursor-pointer"/>
+                                            </div>
+                                            <div className="flex-1">
+                                                 <RichTextEditor minHeight="60px" value={stmt.text} onChange={val => { const s = [...formData.statements]; s[idx].text = val; setFormData({...formData, statements: s}); }} />
+                                            </div>
+                                            <button type="button" onClick={() => { const s = formData.statements.filter((_, i) => i !== idx); setFormData({...formData, statements: s}); }} className="text-rose-500 mt-2 p-2 hover:bg-rose-100 rounded-lg"><Trash2 size={18}/></button>
+                                        </div>
+                                    ))}
+                                    <button type="button" onClick={() => setFormData({...formData, statements: [...formData.statements, {id: Date.now(), text:''}]})} className="text-blue-600 font-bold text-sm bg-blue-50 px-4 py-2 rounded-lg">+ Tambah Pernyataan</button>
+                                </div>
+                            )}
+
+                            {/* EDITOR UNTUK MATRIKS KATEGORI */}
+                            {formData.type === 'CATEGORY' && (
+                                <div className="space-y-4 pt-4 border-t">
+                                    <h3 className="font-bold text-slate-800">Matriks Kategori (Benar/Salah)</h3>
+                                    <div className="flex gap-4 mb-4">
+                                         <div className="flex-1"><label className="text-xs font-bold text-slate-500">Label Kategori 1</label><input type="text" value={formData.statements[0]?.category1 || 'Benar'} onChange={e => { const s = [...formData.statements]; s.forEach(x => x.category1 = e.target.value); setFormData({...formData, statements: s}); }} className="w-full p-2.5 border rounded-lg font-semibold"/></div>
+                                         <div className="flex-1"><label className="text-xs font-bold text-slate-500">Label Kategori 2</label><input type="text" value={formData.statements[0]?.category2 || 'Salah'} onChange={e => { const s = [...formData.statements]; s.forEach(x => x.category2 = e.target.value); setFormData({...formData, statements: s}); }} className="w-full p-2.5 border rounded-lg font-semibold"/></div>
+                                    </div>
+                                    {formData.statements.map((stmt, idx) => (
+                                        <div key={stmt.id} className="border p-4 rounded-xl bg-slate-50 space-y-3">
+                                            <RichTextEditor minHeight="60px" value={stmt.text} onChange={val => { const s = [...formData.statements]; s[idx].text = val; setFormData({...formData, statements: s}); }} />
+                                            <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                                                <div className="flex gap-6">
+                                                    <label className="flex items-center gap-2 cursor-pointer font-semibold text-emerald-700"><input type="radio" className="w-5 h-5 text-emerald-600" checked={stmt.correctCategory === stmt.category1} onChange={() => { const s = [...formData.statements]; s[idx].correctCategory = stmt.category1; setFormData({...formData, statements: s}); }}/> Kunci: {stmt.category1}</label>
+                                                    <label className="flex items-center gap-2 cursor-pointer font-semibold text-amber-700"><input type="radio" className="w-5 h-5 text-amber-600" checked={stmt.correctCategory === stmt.category2} onChange={() => { const s = [...formData.statements]; s[idx].correctCategory = stmt.category2; setFormData({...formData, statements: s}); }}/> Kunci: {stmt.category2}</label>
+                                                </div>
+                                                <button type="button" onClick={() => { const s = formData.statements.filter((_, i) => i !== idx); setFormData({...formData, statements: s}); }} className="text-rose-500 p-2 hover:bg-rose-100 rounded-lg"><Trash2 size={18}/></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button type="button" onClick={() => setFormData({...formData, statements: [...formData.statements, {id: Date.now(), text:'', category1: formData.statements[0]?.category1||'Benar', category2: formData.statements[0]?.category2||'Salah', correctCategory: formData.statements[0]?.category1||'Benar'}]})} className="text-blue-600 font-bold text-sm bg-blue-50 px-4 py-2 rounded-lg">+ Tambah Baris Matriks</button>
+                                </div>
+                            )}
+
+                            <div className="flex justify-end gap-3 pt-6 border-t mt-6">
+                                <button type="button" onClick={() => setView('list')} className="px-6 py-2.5 border rounded-lg font-semibold hover:bg-slate-50 text-slate-600">Batal</button>
+                                <button type="submit" disabled={isSaving} className="px-8 py-2.5 bg-blue-600 text-white rounded-lg font-bold shadow-md hover:bg-blue-700 disabled:opacity-50">{isSaving ? 'Menyimpan...' : 'Simpan Soal'}</button>
+                            </div>
+                        </form>
+                    </div>
+                 </AdminLayout>
+               );
+            }
+
+            if (view === 'list') {
+              const folderQuestions = questions.filter(q => String(q.folder || 'Utama').trim().toLowerCase() === filterFolder.toLowerCase());
+              return (
+                <AdminLayout title={`Folder: ${filterFolder}`}>
+                  <div className="mb-6 flex justify-between items-center gap-3 bg-white p-4 rounded-xl border shadow-sm">
+                     <button onClick={() => setView('folders')} className="border px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center hover:bg-slate-50"><ChevronLeft size={16} className="mr-1"/> Kembali</button>
+                     <button onClick={() => setShowImport(true)} className="bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center shadow-sm hover:bg-emerald-700"><Upload size={16} className="mr-2"/> Unggah Soal (CSV)</button>
+                  </div>
+                  {showImport && (
+                     <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-5">
+                            <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-slate-800">Impor Soal CSV / JSON</h3><button onClick={()=>setShowImport(false)} className="text-slate-500 hover:text-slate-800"><X size={18}/></button></div>
+                            
+                            <div className="grid grid-cols-2 gap-3 mb-4">
+                                <button onClick={downloadTemplateCSV} className="bg-slate-50 border text-slate-700 px-4 py-2 rounded-lg text-xs font-semibold flex items-center justify-center hover:bg-slate-100 transition-colors"><FileText size={14} className="mr-2"/> Templat CSV (Khusus Pilihan Ganda)</button>
+                                <button onClick={downloadTemplateJSON} className="bg-blue-50 border border-blue-100 text-blue-700 px-4 py-2 rounded-lg text-xs font-semibold flex items-center justify-center hover:bg-blue-100 transition-colors"><Database size={14} className="mr-2"/> Templat JSON (Semua Tipe Soal)</button>
+                            </div>
+
+                            <input type="file" accept=".csv,.json" onChange={handleUploadSoal} className="w-full p-4 border-2 border-dashed border-slate-300 rounded-xl text-sm font-medium text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"/>
+                            
+                            {fileError && <div className="mt-3 p-3 bg-rose-50 text-rose-600 text-xs font-bold border border-rose-200 rounded-lg"><i className="fas fa-exclamation-triangle mr-1"></i> {fileError}</div>}
+                        </div>
+                     </div>
+                  )}
+                  <div className="space-y-4">
+                    {folderQuestions.map((q, idx) => (
+                       <div key={q.id} className="bg-white p-5 rounded-xl border shadow-sm flex flex-col sm:flex-row justify-between items-start gap-4">
+                         <div className="flex-1">
+                             <div className="flex items-center gap-2 mb-2">
+                                 <span className="text-xs font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md">No. {idx+1}</span>
+                                 <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded uppercase tracking-wider">{q.type}</span>
+                             </div>
+                             <div className="mt-2 text-slate-800 font-medium rich-text-content text-sm" dangerouslySetInnerHTML={{__html: q.question}}></div>
+                         </div>
+                         <div className="flex sm:flex-col gap-2 shrink-0">
+                            <button onClick={() => duplicateQuestion(q)} className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 p-2.5 rounded-xl font-bold text-xs flex items-center justify-center border border-emerald-200 flex-1 sm:flex-none transition-colors" title="Duplikasi Soal"><Copy size={16} className="sm:mr-1.5"/> <span className="hidden sm:inline">Duplikat</span></button>
+                            <button onClick={() => {setFormData(q); setView('edit');}} className="text-blue-600 bg-blue-50 p-2 hover:bg-blue-100 rounded-lg flex items-center justify-center" title="Edit Soal"><Edit size={16}/></button>
+                            <button onClick={() => deleteQuestion(q.id)} className="text-rose-600 bg-rose-50 p-2 hover:bg-rose-100 rounded-lg flex items-center justify-center" title="Hapus Soal"><Trash2 size={16}/></button>
+                         </div>
+                       </div>
+                    ))}
+                    {folderQuestions.length === 0 && <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300 text-slate-500 font-bold">Belum ada soal di folder ini.</div>}
+                  </div>
+                  <button onClick={() => {setFormData({...defaultMCQ, folder: filterFolder}); setView('create');}} className="fixed bottom-8 right-8 bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform"><Plus size={28}/></button>
+                </AdminLayout>
+              );
+            }
+
+            return (
+              <AdminLayout title="Manajemen Bank Soal">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                    <div onClick={createFolder} className="bg-emerald-50 border-2 border-dashed border-emerald-300 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer min-h-[180px] hover:bg-emerald-100 transition-colors">
+                        <div className="w-12 h-12 bg-emerald-200 text-emerald-700 rounded-full flex items-center justify-center mb-3"><Plus size={24}/></div>
+                        <span className="font-bold text-emerald-800">Buat Folder Baru</span>
+                    </div>
+                    {Object.entries(folderStats).map(([fname, count]) => {
+                        const isPublished = activeFolder.toLowerCase() === fname.toLowerCase();
+                        return (
+                        <div key={fname} className={`bg-white border-2 rounded-2xl p-6 flex flex-col justify-between shadow-sm min-h-[180px] ${isPublished ? 'border-emerald-400' : 'border-slate-200'}`}>
+                            <div>
+                                <h4 className="font-bold text-xl text-slate-800 mb-1 truncate" title={fname}>{fname}</h4>
+                                <p className="text-xs text-slate-500 font-semibold bg-slate-100 inline-block px-3 py-1 rounded-full">{count} Butir Soal</p>
+                            </div>
+                            <div className="mt-6 flex flex-col gap-2">
+                                <div className="flex gap-2">
+                                    <button onClick={() => { setFilterFolder(fname); setView('list'); }} className="flex-1 bg-slate-100 py-2 rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-200 transition-colors">Buka</button>
+                                    <button onClick={() => editFolder(fname)} className="px-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" title="Edit Nama Folder"><Edit size={16}/></button>
+                                    {fname !== 'Utama' && <button onClick={() => deleteFolder(fname)} className="px-3 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-colors" title="Hapus Folder Permanen"><Trash2 size={16}/></button>}
+                                </div>
+                                <button onClick={() => publishFolder(fname)} className={`w-full py-2.5 rounded-lg text-sm font-bold transition-colors ${isPublished ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+                                    {isPublished ? 'Sedang Diterbitkan' : 'Terbitkan Folder Ini'}
+                                </button>
+                            </div>
+                        </div>
+                    )})}
+                 </div>
+              </AdminLayout>
+            );
+          };
+
+          const AdminItemAnalysis = () => {
+             const [isDeleting, setIsDeleting] = useState(false);
+             const [filterFolder, setFilterFolder] = useState('Semua');
+             const [filterSchool, setFilterSchool] = useState('Semua');
+             const [filterDate, setFilterDate] = useState('Semua');
+             const [activeTab, setActiveTab] = useState('BUTIR'); 
+             const [sortOrder, setSortOrder] = useState('DEFAULT'); 
+
+             const availableFolders = ['Semua', ...new Set(questions.map(q => q.folder || 'Utama'))];
+             const schoolList = ['Semua', ...new Set(results.map(r => r.participant?.school).filter(Boolean))];
+             const dateList = ['Semua', ...new Set(results.map(r => new Date(r.startTime).toLocaleDateString('id-ID')))];
+
+             const filteredQuestions = filterFolder === 'Semua' ? questions : questions.filter(q => (q.folder || 'Utama') === filterFolder);
+             
+             const filteredResults = results.filter(r => {
+                 const matchSchool = filterSchool === 'Semua' || r.participant?.school === filterSchool;
+                 const matchDate = filterDate === 'Semua' || new Date(r.startTime).toLocaleDateString('id-ID') === filterDate;
+                 return matchSchool && matchDate;
+             });
+
+             const deleteAllResults = async () => {
+                if(results.length === 0) return;
+                if(!confirm("PERINGATAN: Menghapus data di sini akan menghapus SELURUH hasil ujian siswa. Lanjutkan?")) return;
+                setIsDeleting(true);
+                try {
+                    const db = await getSupabase();
+                    const { error } = await db.from('results').delete().neq('participant_name', 'DELETE_ALL_DUMMY');
+                    if (error) throw error;
+                    await fetchSupabaseData();
+                    alert("Seluruh data analisis dan hasil berhasil dihapus.");
+                } catch(e) { alert("Gagal menghapus data: " + e.message); }
+                setIsDeleting(false);
+             };
+
+            const analysisData = filteredQuestions.map(q => {
+                let correct = 0, wrong = 0, empty = 0;
+                filteredResults.forEach(r => {
+                    const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
+                    const d = details.find(x => x.qId === q.id);
+                    if (!d || d.isEmpty) empty++;
+                    else if (d.isCorrect) correct++;
+                    else wrong++;
+                });
+                const total = filteredResults.length;
+                const percentage = total > 0 ? ((correct / total) * 100).toFixed(1) : 0;
+                
+                let difficulty = "N/A";
+                if (total > 0) {
+                    const p = parseFloat(percentage);
+                    if (p > 85) difficulty = "Sangat Mudah";
+                    else if (p >= 70) difficulty = "Mudah";
+                    else if (p >= 50) difficulty = "Sedang";
+                    else if (p >= 30) difficulty = "Sulit";
+                    else difficulty = "Sangat Sulit";
+                }
+                return { ...q, correct, wrong, empty, total, percentage, difficulty };
+            });
+
+            let matrixResults = filteredResults.filter(r => {
+                 if (filterFolder === 'Semua') return true;
+                 const firstQId = r.detail?.detailedResults?.find(x => x.qId !== 'SYS_CHEATS')?.qId;
+                 const q = questions.find(x => x.id === firstQId);
+                 return (q?.folder || 'Utama') === filterFolder;
+            });
+
+            if (sortOrder === 'NAME_ASC') matrixResults.sort((a,b) => (a.participant?.name || '').localeCompare(b.participant?.name || ''));
+            else if (sortOrder === 'NAME_DESC') matrixResults.sort((a,b) => (b.participant?.name || '').localeCompare(a.participant?.name || ''));
+
+            const downloadAnalisis = () => {
+                if (analysisData.length === 0) return alert("Tidak ada data analisis untuk diunduh.");
+                let csvContent = "\uFEFFNo,Folder/Kategori,Tipe,Pertanyaan,Benar,Salah,Kosong,Persentase Benar,Tingkat Kesulitan\n";
+                
+                analysisData.forEach((d, idx) => {
+                    const tempDiv = document.createElement("div"); tempDiv.innerHTML = d.question || "";
+                    const plainText = (tempDiv.textContent || tempDiv.innerText || "").replace(/"/g, '""').replace(/\n/g, ' ');
+                    csvContent += `${idx + 1},"${d.folder || 'Utama'}","${d.type}","${plainText}",${d.correct},${d.wrong},${d.empty},"${d.percentage}%","${d.difficulty}"\n`;
+                });
+                
+                const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
+                link.download = `Analisis_Butir_Soal_${filterFolder}_${new Date().getTime()}.csv`; link.click();
+            };
+
+            const downloadMatrixPDF = () => {
+                if (matrixResults.length === 0) return alert("Tidak ada data untuk dicetak.");
+                
+                const printWindow = window.open('', '_blank');
+                
+                let tableHeaders = `<th style="width: 30px;">No</th><th style="text-align: left;">Nama Peserta</th>`;
+                filteredQuestions.forEach((q, i) => {
+                    const tooltip = (q.question || '').replace(/<[^>]+>/g, '').replace(/"/g, "'");
+                    tableHeaders += `<th title="${tooltip}" style="width: 25px;">${i + 1}</th>`;
+                });
+                tableHeaders += `<th style="width: 50px;">Skor</th><th style="width: 50px;">Nilai</th>`;
+
+                let tableRows = '';
+                matrixResults.forEach((r, i) => {
+                    const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
+                    const earned = details.reduce((sum, d) => sum + (d.pointsEarned || 0), 0);
+
+                    let rowHtml = `<tr>
+                        <td style="text-align:center;">${i + 1}</td>
+                        <td style="text-transform: uppercase; font-weight: bold; font-size: 10px;">${r.participant?.name || '-'}</td>`;
+
+                    filteredQuestions.forEach(q => {
+                        const d = details.find(x => x.qId === q.id);
+                        let status = '-'; let bgColor = '#f8fafc'; let color = '#94a3b8';
+
+                        if (d) {
+                            if (d.isEmpty) { status = 'K'; bgColor = '#fef3c7'; color = '#d97706'; } // Kosong
+                            else if (d.isCorrect) { status = 'B'; bgColor = '#d1fae5'; color = '#059669'; } // Benar
+                            else if (d.pointsEarned > 0) { status = 'P'; bgColor = '#dbeafe'; color = '#2563eb'; } // Parsial
+                            else { status = 'S'; bgColor = '#ffe4e6'; color = '#e11d48'; } // Salah
+                        }
+                        rowHtml += `<td style="text-align:center; background-color:${bgColor}; color:${color}; font-weight:bold;">${status}</td>`;
+                    });
+
+                    rowHtml += `<td style="text-align:center; font-weight:bold; background-color: #f1f5f9;">${earned}</td>
+                                <td style="text-align:center; font-weight:900; color:#059669; background-color: #ecfdf5;">${r.score}</td>
+                              </tr>`;
+                    tableRows += rowHtml;
+                });
+
+                const htmlContent = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Matriks_Analisis_${filterFolder.replace(/\s+/g, '_')}</title>
+                        <style>
+                            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #333; padding: 10px; }
+                            .header { text-align: center; margin-bottom: 20px; }
+                            .header h2 { margin: 0 0 5px 0; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;}
+                            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                            th, td { border: 1px solid #cbd5e1; padding: 4px; }
+                            th { background-color: #f1f5f9; font-weight: bold; text-align: center; font-size: 9px; color: #475569; }
+                            td { font-size: 9px; }
+                            .legend { display: flex; gap: 20px; margin-top: 15px; font-size: 10px; font-weight: bold; justify-content: center; color: #64748b; }
+                            @media print {
+                                @page { size: landscape; margin: 1cm; } /* Memaksa print landscape */
+                                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <h2>Laporan Matriks Analisis Jawaban Siswa</h2>
+                            <p style="margin:0; font-size:11px; color:#64748b;">Kategori / Mapel: <strong style="color:#0f172a;">${filterFolder}</strong> &nbsp;|&nbsp; Sekolah: <strong style="color:#0f172a;">${filterSchool}</strong></p>
+                        </div>
+                        <table>
+                            <thead><tr>${tableHeaders}</tr></thead>
+                            <tbody>${tableRows}</tbody>
+                        </table>
+                        <div class="legend">
+                            <span><span style="color:#059669">B:</span> Benar</span>
+                            <span><span style="color:#e11d48">S:</span> Salah</span>
+                            <span><span style="color:#2563eb">P:</span> Parsial (Benar Sebagian)</span>
+                            <span><span style="color:#d97706">K:</span> Kosong</span>
+                        </div>
+                        <script>window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); }<${'/'}script>
+                    </body>
+                    </html>
+                `;
+                printWindow.document.open();
+                printWindow.document.write(htmlContent);
+                printWindow.document.close();
+            };
+
+            return (
+              <AdminLayout title="Analisis Data Ujian">
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-4">
+                    <div className="bg-white rounded-xl border p-2 flex-1 w-full xl:w-auto shadow-sm flex flex-col xl:flex-row gap-3 items-start xl:items-center">
+                       <div className="flex gap-1 p-1 bg-slate-100 rounded-lg w-full sm:w-auto shrink-0">
+                           <button onClick={() => setActiveTab('BUTIR')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'BUTIR' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Analisis Butir Soal</button>
+                           <button onClick={() => setActiveTab('INDIVIDU')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'INDIVIDU' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Analisis Per Siswa</button>
+                       </div>
+                       
+                       <div className="flex flex-wrap items-center gap-2 xl:border-l xl:pl-3 w-full sm:w-auto bg-slate-50 p-1.5 rounded-lg border border-slate-200 xl:border-none xl:bg-transparent">
+                           <select value={filterSchool} onChange={e=>setFilterSchool(e.target.value)} className="border-none py-1 px-2 text-sm bg-transparent font-semibold focus:ring-0 outline-none cursor-pointer text-slate-700 w-full sm:w-auto">
+                               {schoolList.map(s => <option key={s} value={s}>{s === 'Semua' ? 'Sekolah: Semua' : s}</option>)}
+                           </select>
+                           <div className="w-px h-5 bg-slate-300 hidden sm:block"></div>
+                           <select value={filterDate} onChange={e=>setFilterDate(e.target.value)} className="border-none py-1 px-2 text-sm bg-transparent font-semibold focus:ring-0 outline-none cursor-pointer text-emerald-700 w-full sm:w-auto">
+                               {dateList.map(d => <option key={d} value={d}>{d === 'Semua' ? 'Tanggal: Semua' : d}</option>)}
+                           </select>
+                           <div className="w-px h-5 bg-slate-300 hidden sm:block"></div>
+                           <select value={filterFolder} onChange={e=>setFilterFolder(e.target.value)} className="border-none py-1 px-2 text-sm bg-transparent font-semibold focus:ring-0 outline-none cursor-pointer text-blue-700 w-full sm:w-auto">
+                               {availableFolders.map(f => <option key={f} value={f}>{f === 'Semua' ? 'Kategori: Semua' : f}</option>)}
+                           </select>
+                       </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 w-full xl:w-auto">
+                        {activeTab === 'INDIVIDU' && (
+                            <>
+                                <select value={sortOrder} onChange={e=>setSortOrder(e.target.value)} className="flex-1 sm:flex-none border border-slate-300 rounded-xl p-2.5 text-sm bg-white font-semibold outline-none cursor-pointer">
+                                    <option value="DEFAULT">Urutan Waktu</option><option value="NAME_ASC">Nama A-Z</option><option value="NAME_DESC">Nama Z-A</option>
+                                </select>
+                                <button onClick={downloadMatrixPDF} disabled={filterFolder === 'Semua' || matrixResults.length === 0} className="flex-1 sm:flex-none bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center hover:bg-emerald-100 shadow-sm disabled:opacity-50 transition-colors">
+                                    <i className="fas fa-file-pdf mr-2"></i> PDF Matriks
+                                </button>
+                            </>
+                        )}
+                        {activeTab === 'BUTIR' && (
+                            <button onClick={downloadAnalisis} className="flex-1 sm:flex-none bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center hover:bg-emerald-100 shadow-sm"><i className="fas fa-download mr-2"></i> CSV</button>
+                        )}
+                        <button onClick={fetchSupabaseData} className="flex-1 sm:flex-none bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center hover:bg-blue-100 shadow-sm"><i className="fas fa-sync-alt"></i></button>
+                        <button onClick={deleteAllResults} disabled={isDeleting || results.length === 0} className="w-full sm:w-auto bg-rose-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center hover:bg-rose-700 disabled:opacity-50 shadow-sm">
+                            <Trash2 size={16} className="mr-2"/> Hapus Semua
+                        </button>
+                    </div>
+                </div>
+                
+                {activeTab === 'BUTIR' ? (
+                    <>
+                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex flex-wrap gap-4 items-center text-xs font-medium text-slate-700 shadow-sm">
+                            <span className="font-bold text-blue-900 mr-2"><i className="fas fa-info-circle mr-1"></i> Indikator Kesulitan (Data Aktual Terfilter):</span>
+                            <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded">Sangat Mudah (&gt;85%)</span>
+                            <span className="bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-200">Mudah (70-85%)</span>
+                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">Sedang (50-69%)</span>
+                            <span className="bg-rose-50 text-rose-700 px-2 py-1 rounded border border-rose-200">Sulit (30-49%)</span>
+                            <span className="bg-rose-100 text-rose-800 px-2 py-1 rounded">Sangat Sulit (&lt;30%)</span>
+                        </div>
+                        <div className="bg-white rounded-xl border overflow-x-auto shadow-sm">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-slate-50 border-b">
+                                    <tr>
+                                        <th className="p-4 text-center w-12">No</th><th className="p-4">Kategori / Tipe</th><th className="p-4">Pertanyaan (Cuplikan)</th>
+                                        <th className="p-4 text-center">Benar</th><th className="p-4 text-center">Salah</th><th className="p-4 text-center">Kosong</th><th className="p-4 text-center">% Benar</th><th className="p-4 text-center">Kesulitan</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {analysisData.map((d, idx) => {
+                                        const tempDiv = document.createElement("div"); tempDiv.innerHTML = d.question || "";
+                                        const plainText = tempDiv.textContent || tempDiv.innerText || "";
+                                        return (
+                                        <tr key={d.id} className="border-b hover:bg-slate-50 transition-colors">
+                                            <td className="p-4 text-center font-bold text-slate-500">{idx + 1}</td>
+                                            <td className="p-4"><div className="font-semibold text-slate-700">{d.category || d.folder || 'Utama'}</div><div className="text-[10px] uppercase font-bold text-blue-500 bg-blue-50 inline-block px-2 py-0.5 rounded mt-1 border border-blue-100">{d.type}</div></td>
+                                            <td className="p-4 max-w-xs truncate text-slate-600" title={plainText}>{plainText}</td>
+                                            <td className="p-4 text-center font-bold text-emerald-600">{d.correct}</td>
+                                            <td className="p-4 text-center font-bold text-rose-600">{d.wrong}</td>
+                                            <td className="p-4 text-center font-bold text-slate-400">{d.empty}</td>
+                                            <td className="p-4 text-center font-black text-blue-600">{d.percentage}%</td>
+                                            <td className="p-4 text-center"><span className={`px-2 py-1 rounded text-xs font-bold border ${d.difficulty.includes('Mudah') ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : d.difficulty === 'Sedang' ? 'bg-blue-50 text-blue-700 border-blue-200' : d.difficulty.includes('Sulit') ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>{d.difficulty}</span></td>
+                                        </tr>
+                                    )})}
+                                    {analysisData.length === 0 && <tr><td colSpan="8" className="text-center p-8 text-slate-500 font-bold bg-slate-50">Belum ada data soal pada filter ini.</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        {filterFolder === 'Semua' ? (
+                            <div className="bg-amber-50 border border-amber-200 p-8 rounded-xl text-center shadow-sm">
+                                <AlertCircle size={48} className="mx-auto text-amber-500 mb-4"/>
+                                <h3 className="text-lg font-bold text-amber-800 mb-2">Pilih Filter Kategori/Folder!</h3>
+                                <p className="text-amber-700 text-sm font-medium">Anda harus memilih satu Kategori (Folder Soal) yang spesifik di menu atas untuk melihat Matriks Analisis Individu agar tabel tidak memanjang keluar layar.</p>
+                            </div>
+                        ) : (
+                            <div className="bg-white rounded-xl border overflow-x-auto shadow-sm pb-4">
+                                <table className="w-full text-left text-sm whitespace-nowrap">
+                                    <thead className="bg-slate-50 border-b">
+                                        <tr>
+                                            <th className="p-4 border-r w-12 text-center text-slate-600 font-bold">No</th>
+                                            <th className="p-4 border-r text-slate-600 font-bold min-w-[200px]">Nama Peserta</th>
+                                            {filteredQuestions.map((q, i) => (
+                                                <th key={q.id} className="p-4 border-r text-center text-slate-600 font-bold w-12" title={q.question?.replace(/<[^>]+>/g, '')}>{i+1}</th>
+                                            ))}
+                                            <th className="p-4 border-r text-center text-slate-600 font-bold bg-blue-50">Jml Skor</th>
+                                            <th className="p-4 text-center text-slate-600 font-bold bg-emerald-50">Nilai Akhir</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {matrixResults.map((r, i) => {
+                                            const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
+                                            const earned = details.reduce((sum, d) => sum + (d.pointsEarned || 0), 0);
+                                            return (
+                                                <tr key={r.id} className="border-b hover:bg-slate-50">
+                                                    <td className="p-4 border-r text-center text-slate-500 font-medium">{i+1}</td>
+                                                    <td className="p-4 border-r font-bold text-slate-800 uppercase">{r.participant?.name}</td>
+                                                    {filteredQuestions.map((q) => {
+                                                        const d = details.find(x => x.qId === q.id);
+                                                        let status = '-'; let colorClass = 'text-slate-300';
+                                                        if (d) {
+                                                            if (d.isEmpty) { status = 'K'; colorClass = 'text-amber-500 font-bold bg-amber-50'; }
+                                                            else if (d.isCorrect) { status = 'B'; colorClass = 'text-emerald-600 font-bold bg-emerald-50'; }
+                                                            else if (d.pointsEarned > 0) { status = 'P'; colorClass = 'text-blue-600 font-bold bg-blue-50'; } // Partial
+                                                            else { status = 'S'; colorClass = 'text-rose-600 font-bold bg-rose-50'; }
+                                                        }
+                                                        return <td key={q.id} className={`p-4 border-r text-center ${colorClass}`}>{status}</td>;
+                                                    })}
+                                                    <td className="p-4 border-r text-center font-bold text-blue-700 bg-blue-50/30">{earned}</td>
+                                                    <td className="p-4 text-center font-black text-emerald-600 bg-emerald-50/30">{r.score}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                        {matrixResults.length === 0 && <tr><td colSpan={filteredQuestions.length + 4} className="text-center p-8 text-slate-500 font-bold">Tidak ada peserta yang mengambil ujian pada kategori dan tanggal ini.</td></tr>}
+                                    </tbody>
+                                </table>
+                                <div className="mt-4 px-6 flex gap-4 text-xs font-bold text-slate-500">
+                                    <span><span className="text-emerald-600">B:</span> Benar</span>
+                                    <span><span className="text-rose-600">S:</span> Salah</span>
+                                    <span><span className="text-blue-600">P:</span> Parsial (Benar Sebagian)</span>
+                                    <span><span className="text-amber-500">K:</span> Kosong</span>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+              </AdminLayout>
+            );
+          };
+
+          const AdminReports = () => {
+             const [filterSchool, setFilterSchool] = useState('Semua');
+             const [filterDate, setFilterDate] = useState('Semua');
+             const [sortOrder, setSortOrder] = useState('DEFAULT');
+             const [activeTab, setActiveTab] = useState('NILAI');
+             
+             const schoolList = ['Semua', ...new Set(results.map(r => r.participant?.school).filter(Boolean))];
+             const dateList = ['Semua', ...new Set(results.map(r => new Date(r.startTime).toLocaleDateString('id-ID')))];
+             
+             let processedResults = results.filter(r => {
+                 const matchSchool = filterSchool === 'Semua' || r.participant?.school === filterSchool;
+                 const matchDate = filterDate === 'Semua' || new Date(r.startTime).toLocaleDateString('id-ID') === filterDate;
+                 return matchSchool && matchDate;
+             });
+             
+             // Logika Sortir Lengkap (Waktu, Nama, Ranking)
+             if (sortOrder === 'RANK_DESC') {
+                 processedResults.sort((a, b) => b.score - a.score);
+             } else if (sortOrder === 'RANK_ASC') {
+                 processedResults.sort((a, b) => a.score - b.score);
+             } else if (sortOrder === 'NAME_ASC') {
+                 processedResults.sort((a, b) => (a.participant?.name || '').localeCompare(b.participant?.name || ''));
+             }
+
+             // Kalkulasi Statistik Logis (Mean & Std Dev)
+             const scores = processedResults.map(r => r.score);
+             const validCount = scores.length;
+             const meanScore = validCount > 0 ? (scores.reduce((a,b) => a + b, 0) / validCount) : 0;
+             const variance = validCount > 0 ? (scores.reduce((a,b) => a + Math.pow(b - meanScore, 2), 0) / validCount) : 0;
+             const stdDeviation = Math.sqrt(variance);
+
+             return (
+                <AdminLayout title="Cetak Laporan Dokumen (F4)">
+                   <div className="mb-6 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-4 rounded-xl border shadow-sm print:hidden">
+                      <div className="flex gap-2 bg-slate-100 p-1.5 rounded-lg w-full xl:w-auto shrink-0">
+                          <button onClick={() => setActiveTab('NILAI')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'NILAI' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Rekap Nilai</button>
+                          <button onClick={() => setActiveTab('PELANGGARAN')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'PELANGGARAN' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Laporan Pelanggaran</button>
+                      </div>
+                      
+                      <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+                         <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-1 gap-1">
+                             <select value={filterSchool} onChange={e=>setFilterSchool(e.target.value)} className="border-none bg-transparent p-2 text-sm font-semibold outline-none cursor-pointer text-slate-700">
+                                {schoolList.map(s => <option key={s} value={s}>{s === 'Semua' ? 'Sekolah: Semua' : s}</option>)}
+                             </select>
+                             <div className="w-px h-6 bg-slate-300"></div>
+                             <select value={filterDate} onChange={e=>setFilterDate(e.target.value)} className="border-none bg-transparent p-2 text-sm font-semibold outline-none cursor-pointer text-emerald-700">
+                                {dateList.map(d => <option key={d} value={d}>{d === 'Semua' ? 'Tanggal: Semua' : d}</option>)}
+                             </select>
+                         </div>
+                         
+                         <select value={sortOrder} onChange={e=>setSortOrder(e.target.value)} className="border border-slate-300 rounded-lg p-2.5 text-sm bg-white font-semibold outline-none cursor-pointer">
+                            <option value="DEFAULT">Urutan Terbaru</option>
+                            <option value="NAME_ASC">Nama A-Z</option>
+                            <option value="RANK_DESC">Ranking Tertinggi</option>
+                            <option value="RANK_ASC">Ranking Terendah</option>
+                         </select>
+                         
+                         <button onClick={fetchSupabaseData} className="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-2.5 rounded-lg text-sm font-bold flex items-center hover:bg-blue-100 transition-colors" title="Muat Ulang Data">
+                            <i className="fas fa-sync-alt"></i>
+                         </button>
+                         <button onClick={() => window.print()} className="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-lg font-bold text-sm flex items-center shadow-md transition-colors"><i className="fas fa-file-pdf mr-2"></i> Cetak Laporan (PDF)</button>
+                      </div>
+                   </div>
+                   
+                   <div className="bg-white border shadow-md mx-auto w-full max-w-[21.5cm] min-h-[33cm] p-8 sm:p-12 print-container">
+                      <div className="text-center border-b-2 border-slate-800 pb-4 mb-6">
+                         <h1 className="text-xl font-bold uppercase tracking-widest text-slate-900 mb-1">{activeTab === 'NILAI' ? 'Laporan Hasil Ujian' : 'Laporan Deteksi Pelanggaran'}</h1>
+                         <p className="text-slate-600 font-medium">{organizerName}</p>
+                      </div>
+                      
+                      <div className={`mb-6 grid gap-4 text-sm bg-slate-50 p-4 rounded-lg border border-slate-200 ${activeTab === 'NILAI' ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2 md:grid-cols-3'}`}>
+                         <div><p className="text-slate-500 text-xs font-bold uppercase mb-1">Filter Sekolah</p><p className="font-black text-blue-800">{filterSchool}</p></div>
+                         <div><p className="text-slate-500 text-xs font-bold uppercase mb-1">Tanggal Ujian</p><p className="font-black text-emerald-700">{filterDate}</p></div>
+                         <div><p className="text-slate-500 text-xs font-bold uppercase mb-1">Total Peserta</p><p className="font-black text-slate-800">{validCount} Siswa</p></div>
+                         {activeTab === 'NILAI' && (
+                             <>
+                                <div><p className="text-slate-500 text-xs font-bold uppercase mb-1">Rata-Rata Nilai</p><p className="font-black text-emerald-700">{meanScore.toFixed(2)}</p></div>
+                                <div><p className="text-slate-500 text-xs font-bold uppercase mb-1">Standar Deviasi</p><p className="font-black text-amber-600">± {stdDeviation.toFixed(2)}</p></div>
+                             </>
+                         )}
+                      </div>
+                      
+                      <table className="w-full text-left border-collapse border border-slate-800 text-sm">
+                         <thead className="bg-slate-100 uppercase font-bold text-xs"><tr className="border-b border-slate-800">
+                            <th className="border-r border-slate-800 py-2.5 px-3 text-center w-12">No</th>
+                            <th className="border-r border-slate-800 py-2.5 px-3">Nama Peserta</th>
+                            <th className="border-r border-slate-800 py-2.5 px-3">Asal Sekolah</th>
+                            {activeTab === 'NILAI' ? (
+                                <><th className="border-r border-slate-800 py-2.5 px-3 text-center w-28">Durasi</th><th className="py-2.5 px-3 text-center w-20">Nilai</th></>
+                            ) : (
+                                <><th className="border-r border-slate-800 py-2.5 px-3 text-center w-28">Status Keamanan</th><th className="py-2.5 px-3 text-center w-36">Peringatan</th></>
+                            )}
+                         </tr></thead>
+                         <tbody>
+                            {processedResults.map((r, i) => {
+                               const durSecs = Math.max(0, Math.floor((r.endTime - r.startTime) / 1000));
+                               const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
+                               const cheats = details.find(x => x.qId === 'SYS_CHEATS')?.cheatCount || 0;
+                               return (
+                               <tr key={i} className="border-b border-slate-800 font-medium">
+                                  <td className="border-r border-slate-800 py-2.5 px-3 text-center">{i+1}</td>
+                                  <td className="border-r border-slate-800 py-2.5 px-3 uppercase">{r.participant?.name}</td>
+                                  <td className="border-r border-slate-800 py-2.5 px-3">{r.participant?.school}</td>
+                                  {activeTab === 'NILAI' ? (
+                                      <><td className="border-r border-slate-800 py-2.5 px-3 text-center text-xs">{`${Math.floor(durSecs/60)}m ${durSecs%60}s`}</td><td className="py-2.5 px-3 text-center font-bold text-blue-700 bg-blue-50/30">{r.score}</td></>
+                                  ) : (
+                                      <><td className="border-r border-slate-800 py-2.5 px-3 text-center">{cheats === 0 ? <span className="text-emerald-600 font-bold">AMAN</span> : <span className="text-rose-600 font-bold">TERDETEKSI</span>}</td><td className="py-2.5 px-3 text-center font-bold">{cheats === 0 ? '-' : <span className="text-rose-600">{cheats}x Pindah Tab</span>}</td></>
+                                  )}
+                               </tr>
+                            )})}
+                            {processedResults.length === 0 && <tr><td colSpan="5" className="text-center py-10 text-slate-500 italic">Tidak ada data peserta ujian untuk ditampilkan.</td></tr>}
+                         </tbody>
+                      </table>
+                      <div className="mt-16 flex justify-end text-center text-slate-800 font-medium text-sm"><div><p className="mb-20">Mengetahui,<br/>Administrator Ujian</p><p className="font-bold underline uppercase">_______________________</p></div></div>
+                   </div>
+                </AdminLayout>
+             );
+          };
+
+          switch (currentRoute) {
+            case '/': case '/login': return <ParticipantLogin />;
+            case '/instruction': return <ParticipantInstruction />;
+            case '/exam': return <ExamEngine />;
+            case '/review': return <ExamReview />;
+            case '/submitted': return <ExamSubmitted />;
+            case '/admin': case '/admin/login': return <AdminLogin />;
+            case '/admin/dashboard': return <AdminDashboard />;
+            case '/admin/tokens': return <AdminTokens />;
+            case '/admin/results': return <AdminResults />;
+            case '/admin/questions': return <AdminQuestions />;
+            case '/admin/analysis': return <AdminItemAnalysis />;
+            case '/admin/reports': return <AdminReports />;
+            default: return <ParticipantLogin />;
+          }
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
