@@ -25,16 +25,19 @@
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; -webkit-font-smoothing: antialiased; }
         .rich-text-content { white-space: pre-wrap; word-wrap: break-word; line-height: 1.6; }
         .rich-text-content p { min-height: 1.5rem; margin-bottom: 0.5rem; }
+        
         .rich-text-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0; display: inline-block; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .rich-text-content [style*="text-align: left"], .rich-text-content [align="left"] { text-align: left !important; }
         .rich-text-content [style*="text-align: center"], .rich-text-content [align="center"] { text-align: center !important; }
         .rich-text-content [style*="text-align: right"], .rich-text-content [align="right"] { text-align: right !important; }
         .rich-text-content [style*="text-align: justify"], .rich-text-content [align="justify"] { text-align: justify !important; }
         .math-tex { font-size: 1.15em; font-weight: normal; }
+        
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
         @media print {
             body, html { background: white !important; height: auto !important; }
             nav, header, button, .print\:hidden { display: none !important; }
@@ -51,8 +54,8 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef } = React;
 
-        const SUPABASE_URL = 'https://ghxxxiracbwatvasdeel.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_2GqdLnhWp13aVBoR7u6xqg_R5pnH3_g';
+        const SUPABASE_URL = 'https://xltrmoeabasrconlhijv.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_kzMgSC5JniUeJZGBGW1RIA_7aKyk0vh';
         let supabase = null;
 
         const Monitor = ({size=24, className=""}) => <i className={`fas fa-desktop ${className}`} style={{fontSize: size}}></i>;
@@ -84,7 +87,6 @@
         const EyeSlash = ({size=24, className=""}) => <i className={`fas fa-eye-slash ${className}`} style={{fontSize: size}}></i>;
         const Upload = ({size=24, className=""}) => <i className={`fas fa-upload ${className}`} style={{fontSize: size}}></i>;
 
-        // KUNCI PERBAIKAN 2: Polling yang stabil dan injeksi UMD fallback
         const getSupabase = async () => {
             if (supabase) return supabase;
 
@@ -133,17 +135,16 @@
                     return supabase;
                 } catch (e) {
                     console.warn(`Fallback CDN Gagal: ${e.message}. Mencoba jalur lain...`);
-                    // Lanjut ke CDN berikutnya dalam daftar
                 }
             }
             
-            // Jika semua CDN gagal, baru lemparkan error fatal
             throw new Error("Semua jalur CDN diblokir oleh jaringan atau browser Anda. Gunakan Live Server (Bukan file:///) atau ganti koneksi internet.");
         };
 
         const RichTextEditor = ({ value, onChange, placeholder, minHeight="120px" }) => {
             const editorRef = useRef(null);
             const fileInputRef = useRef(null);
+            const [isUploading, setIsUploading] = useState(false); // State untuk loading indikator
 
             useEffect(() => {
                 if (editorRef.current && value !== editorRef.current.innerHTML) editorRef.current.innerHTML = value || '';
@@ -162,17 +163,46 @@
                 handleInput(); 
             };
 
-            const handleImageUpload = (e) => {
+            const handleImageUpload = async (e) => {
                 const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        const imgHTML = `<img src="${reader.result}" alt="Gambar" style="max-width: 100%; width: auto; max-height: 250px; border-radius: 8px; margin: 8px 0; object-fit: contain; display: block;" /><br/>`;
-                        editorRef.current.focus();
-                        document.execCommand('insertHTML', false, imgHTML);
-                        handleInput();
-                    };
-                    reader.readAsDataURL(file);
+                if (!file) return;
+
+                setIsUploading(true);
+                try {
+                    const db = await getSupabase();
+                    
+                    // Generate nama file acak yang unik agar tidak menimpa file lain
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+                    const filePath = `public/${fileName}`;
+
+                    // 1. Upload File Fisik ke Supabase Storage (Bucket: soal-images)
+                    const { data, error } = await db.storage
+                        .from('soal-images')
+                        .upload(filePath, file, {
+                            cacheControl: '3600',
+                            upsert: false
+                        });
+
+                    if (error) throw error;
+
+                    // 2. Ambil Public URL dari file yang baru saja diunggah
+                    const { data: { publicUrl } } = db.storage
+                        .from('soal-images')
+                        .getPublicUrl(filePath);
+
+                    // 3. Masukkan Public URL ke dalam editor teks (hanya teks URL yang disimpan di Database)
+                    const imgHTML = `<img src="${publicUrl}" alt="Gambar Soal" style="max-width: 100%; width: auto; max-height: 250px; border-radius: 8px; margin: 8px 0; object-fit: contain; display: block;" /><br/>`;
+                    
+                    editorRef.current.focus();
+                    document.execCommand('insertHTML', false, imgHTML);
+                    handleInput();
+
+                } catch (error) {
+                    alert("Gagal mengunggah gambar ke Storage: \nPastikan Anda sudah membuat bucket 'soal-images' dan mengatur Policies-nya.\nDetail: " + error.message);
+                } finally {
+                    setIsUploading(false);
+                    if (fileInputRef.current) fileInputRef.current.value = ''; // Reset input agar bisa upload file yang sama
                 }
             };
 
@@ -203,7 +233,12 @@
                         <button onMouseDown={(e)=>execCmd('justifyFull', e)} type="button" className="w-8 h-8 text-slate-700 hover:bg-slate-200 rounded flex items-center justify-center" title="Rata Kanan Kiri (Justify)"><i className="fas fa-align-justify text-xs"></i></button>
 
                         <div className="w-px h-5 bg-slate-300 mx-1"></div>
-                        <button onMouseDown={(e)=>{ if(e) e.preventDefault(); fileInputRef.current.click();}} type="button" className="h-8 px-2.5 text-slate-700 hover:bg-slate-200 rounded flex items-center text-xs font-semibold"><ImageIcon size={14} className="mr-1 text-emerald-600"/> Gambar</button>
+                        
+                        {/* Tombol Upload Gambar dengan Indikator Loading */}
+                        <button onMouseDown={(e)=>{ if(e) e.preventDefault(); if(!isUploading) fileInputRef.current.click();}} type="button" className={`h-8 px-2.5 text-slate-700 hover:bg-slate-200 rounded flex items-center text-xs font-semibold ${isUploading ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                            {isUploading ? <i className="fas fa-spinner fa-spin mr-1 text-emerald-600"></i> : <ImageIcon size={14} className="mr-1 text-emerald-600"/>}
+                            {isUploading ? 'Mengunggah...' : 'Gambar'}
+                        </button>
                         
                         <div className="w-px h-5 bg-slate-300 mx-1"></div>
                         <button onMouseDown={insertMathManual} type="button" className="h-8 px-2 text-slate-700 hover:bg-slate-200 rounded flex items-center text-xs font-semibold" title="Ketik Manual LaTeX"><Calculator size={14} className="mr-1 text-blue-600"/> Manual</button>
@@ -2394,7 +2429,6 @@
                  return matchSchool && matchDate;
              });
              
-             // Logika Sortir Lengkap (Waktu, Nama, Ranking)
              if (sortOrder === 'RANK_DESC') {
                  processedResults.sort((a, b) => b.score - a.score);
              } else if (sortOrder === 'RANK_ASC') {
@@ -2403,7 +2437,6 @@
                  processedResults.sort((a, b) => (a.participant?.name || '').localeCompare(b.participant?.name || ''));
              }
 
-             // Kalkulasi Statistik Logis (Mean & Std Dev)
              const scores = processedResults.map(r => r.score);
              const validCount = scores.length;
              const meanScore = validCount > 0 ? (scores.reduce((a,b) => a + b, 0) / validCount) : 0;
