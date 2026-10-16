@@ -50,6 +50,7 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef } = React;
 
+        // KREDENSIAL PROYEK BARU
         const SUPABASE_URL = 'https://ghxxxiracbwatvasdeel.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_2GqdLnhWp13aVBoR7u6xqg_R5pnH3_g';
         let supabase = null;
@@ -125,33 +126,27 @@
             throw new Error("Semua jalur CDN diblokir oleh jaringan atau browser Anda. Gunakan Live Server atau ganti koneksi internet.");
         };
 
-        // KUNCI PERBAIKAN: Komponen khusus untuk merender DOM agar rumus Matematika TIDAK PERNAH BOCOR
-        const MathContent = ({ html, className = "" }) => {
+        // KUNCI PERBAIKAN: Dibungkus dengan React.memo agar DOM tidak di-reset saat state parent (seperti memilih jawaban) berubah.
+        const MathContent = React.memo(({ html, className = "" }) => {
             const divRef = useRef(null);
             
             useEffect(() => {
                 if (divRef.current && window.renderMathInElement) {
-                    // Jeda sedikit agar DOM selesai dicat (painted) oleh React sebelum KaTeX mendeteksinya
-                    const timer = setTimeout(() => {
-                        if (divRef.current) {
-                            window.renderMathInElement(divRef.current, {
-                                ignoredClasses: ["editor-ignore-math"],
-                                delimiters: [
-                                    {left: '$$', right: '$$', display: true},
-                                    {left: '\\[', right: '\\]', display: true},
-                                    {left: '\\(', right: '\\)', display: false},
-                                    {left: '$', right: '$', display: false}
-                                ],
-                                throwOnError: false
-                            });
-                        }
-                    }, 50);
-                    return () => clearTimeout(timer);
+                    window.renderMathInElement(divRef.current, {
+                        ignoredClasses: ["editor-ignore-math"],
+                        delimiters: [
+                            {left: '$$', right: '$$', display: true},
+                            {left: '\\[', right: '\\]', display: true},
+                            {left: '\\(', right: '\\)', display: false},
+                            {left: '$', right: '$', display: false}
+                        ],
+                        throwOnError: false
+                    });
                 }
-            }, [html]); // Dipicu ulang HANYA setiap kali isi HTML berubah!
+            }, [html]); // Efek ini HANYA berjalan jika 'html' murni berubah, bukan saat jawaban diklik.
 
             return <div ref={divRef} className={`rich-text-content ${className}`} dangerouslySetInnerHTML={{ __html: html || '' }} />;
-        };
+        });
 
         const RichTextEditor = ({ value, onChange, placeholder, minHeight="120px" }) => {
             const editorRef = useRef(null);
@@ -658,14 +653,11 @@
             const handleAnswerChange = (val) => { setActiveSession(prev => ({ ...prev, answers: { ...prev.answers, [currentQuestion.id]: val } })); };
             const toggleFlag = () => { setActiveSession(prev => ({ ...prev, flagged: isFlagged ? prev.flagged.filter(id => id !== currentQuestion.id) : [...(prev.flagged || []), currentQuestion.id] })); };
 
+            // KUNCI PERBAIKAN: Hapus setTimeout agar soal tidak auto-next
             const handleAnswerChangeMCQ = (val) => {
                 handleAnswerChange(val);
-                if (examCurrentIndex < examQuestions.length - 1) {
-                    setTimeout(() => setExamCurrentIndex(examCurrentIndex + 1), 400); 
-                }
             };
 
-            // Menggunakan MathContent agar opsi ganda merender math dengan sempurna
             const RenderMCQ = () => (
               <div className="space-y-3 mt-6">
                 {(currentQuestion.options||[]).map(opt => (
@@ -677,7 +669,6 @@
               </div>
             );
 
-            // Menggunakan MathContent agar opsi ganda kompleks merender math dengan sempurna
             const RenderMCMA = () => {
                const selectedArr = Array.isArray(currentAnswer) ? currentAnswer : [];
                const handleToggle = (id) => {
@@ -1908,12 +1899,10 @@
             if (view === 'create' || view === 'edit') {
                const availableFolders = [...new Set([...questions.map(q => q.folder || 'Utama'), ...tokens.filter(t => t.code && t.code.startsWith('SYS_FOLDER_')).map(t => t.status), filterFolder, 'Utama'])];
                
-               // TAMPILAN BARU: Layar dibagi menjadi 2 Kolom (Editor Kiri, Pratinjau Kanan)
                return (
                  <AdminLayout title="Editor Soal">
                     <div className="flex flex-col xl:flex-row gap-6 mb-10 items-start">
                         
-                        {/* BAGIAN KIRI: Form Editor */}
                         <div className="flex-1 bg-white rounded-xl shadow-sm border p-6 w-full">
                             <form onSubmit={saveQuestion} className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border">
@@ -1947,7 +1936,6 @@
                                     <RichTextEditor value={formData.question} onChange={val => setFormData({...formData, question: val})} />
                                 </div>
 
-                                {/* EDITOR UNTUK PILIHAN GANDA (MCQ) DENGAN RICH TEXT */}
                                 {formData.type === 'MCQ' && (
                                     <div className="space-y-4 pt-4 border-t">
                                         <h3 className="font-bold text-slate-800 mb-2">Opsi Jawaban (A-D)</h3>
@@ -1966,7 +1954,6 @@
                                     </div>
                                 )}
 
-                                {/* EDITOR UNTUK GANDA KOMPLEKS (MCMA) */}
                                 {formData.type === 'MCMA' && (
                                     <div className="space-y-4 pt-4 border-t">
                                         <div className="flex justify-between items-center"><h3 className="font-bold text-slate-800">Pernyataan (Pilih Jawaban Benar)</h3></div>
@@ -1989,7 +1976,6 @@
                                     </div>
                                 )}
 
-                                {/* EDITOR UNTUK MATRIKS KATEGORI */}
                                 {formData.type === 'CATEGORY' && (
                                     <div className="space-y-4 pt-4 border-t">
                                         <h3 className="font-bold text-slate-800">Matriks Kategori (Benar/Salah)</h3>
@@ -2020,7 +2006,6 @@
                             </form>
                         </div>
 
-                        {/* BAGIAN KANAN: Live Preview */}
                         <div className="w-full xl:w-[450px] shrink-0 sticky top-24">
                             <div className="bg-white rounded-xl shadow-sm border p-5">
                                 <div className="border-b pb-3 mb-4 flex items-center justify-between">
@@ -2028,10 +2013,8 @@
                                     <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded uppercase tracking-wider border border-slate-200">{formData.type}</span>
                                 </div>
                                 <div className="preview-container overflow-y-auto max-h-[60vh] pr-2">
-                                    {/* Pertanyaan */}
                                     <MathContent html={formData.question || '<p class="text-slate-400 italic">Teks pertanyaan kosong...</p>'} className="text-sm font-medium mb-5 text-slate-800" />
                                     
-                                    {/* Pratinjau MCQ */}
                                     {formData.type === 'MCQ' && (
                                         <div className="space-y-2">
                                             {formData.options.map(opt => (
@@ -2043,7 +2026,6 @@
                                         </div>
                                     )}
 
-                                    {/* Pratinjau MCMA */}
                                     {formData.type === 'MCMA' && (
                                         <div className="space-y-2">
                                             <div className="bg-blue-50 border border-blue-100 text-blue-700 p-2 rounded text-xs font-medium mb-3">Pilih lebih dari satu jawaban:</div>
@@ -2056,7 +2038,6 @@
                                         </div>
                                     )}
 
-                                    {/* Pratinjau CATEGORY */}
                                     {formData.type === 'CATEGORY' && (
                                         <div className="overflow-x-auto pb-2">
                                             <table className="w-full text-left text-xs border-collapse min-w-[300px] border border-slate-200 rounded-lg overflow-hidden shadow-sm">
@@ -2251,7 +2232,6 @@
                 link.download = `Analisis_Butir_Soal_${filterFolder}_${new Date().getTime()}.csv`; link.click();
             };
 
-            // FITUR BARU: Download PDF Khusus Analisis Individu (Matriks B/S/P/K)
             const downloadMatrixPDF = () => {
                 if (matrixResults.length === 0) return alert("Tidak ada data untuk dicetak.");
                 
