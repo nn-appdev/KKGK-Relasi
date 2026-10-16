@@ -83,6 +83,7 @@
         const Eye = ({size=24, className=""}) => <i className={`fas fa-eye ${className}`} style={{fontSize: size}}></i>;
         const EyeSlash = ({size=24, className=""}) => <i className={`fas fa-eye-slash ${className}`} style={{fontSize: size}}></i>;
         const Upload = ({size=24, className=""}) => <i className={`fas fa-upload ${className}`} style={{fontSize: size}}></i>;
+        const Activity = ({size=24, className=""}) => <i className={`fas fa-satellite-dish ${className}`} style={{fontSize: size}}></i>;
 
         const getSupabase = async () => {
             if (supabase) return supabase;
@@ -870,6 +871,7 @@
             const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
             if (!isAdminLoggedIn) { navigate('/admin/login'); return null; }
             const menu = [
+              { id: 'monitor', label: 'Pantau Ujian', icon: Activity, path: '/admin/monitor' },
               { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
               { id: 'questions', label: 'Bank Soal', icon: Database, path: '/admin/questions' },
               { id: 'tokens', label: 'Token Ujian', icon: Key, path: '/admin/tokens' },
@@ -896,7 +898,77 @@
             );
           };
 
-          const AdminDashboard = () => {
+          const AdminLiveMonitor = () => {
+             const [liveData, setLiveData] = useState([]);
+             const [isPolling, setIsPolling] = useState(true);
+
+             const fetchLive = async () => {
+                 try {
+                     const db = await getSupabase();
+                     const { data, error } = await db.from('tokens').select('code, participant_name, participant_school, status, live_progress').eq('status', 'USED');
+                     if (!error && data) setLiveData(data);
+                 } catch(e) {}
+             };
+
+             useEffect(() => {
+                 fetchLive();
+                 let interval;
+                 if (isPolling) {
+                     interval = setInterval(fetchLive, 5000); // Admin tarik data tiap 5 detik
+                 }
+                 return () => clearInterval(interval);
+             }, [isPolling]);
+
+             return (
+               <AdminLayout title="Pantau Ujian (Live)">
+                 <div className="mb-6 flex justify-between items-center bg-white p-4 rounded-xl border shadow-sm">
+                    <div className="flex items-center">
+                        <div className={`w-3 h-3 rounded-full mr-3 ${isPolling ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></div>
+                        <h3 className="font-bold text-slate-800">Status Pemantauan: {isPolling ? 'Aktif (Auto-Refresh)' : 'Berhenti'}</h3>
+                    </div>
+                    <button onClick={() => setIsPolling(!isPolling)} className={`px-4 py-2 rounded-lg text-sm font-bold text-white transition-colors ${isPolling ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
+                        {isPolling ? 'Hentikan Pantauan' : 'Mulai Pantauan'}
+                    </button>
+                 </div>
+                 
+                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                     {liveData.map(t => {
+                         const prog = t.live_progress || {};
+                         const answered = prog.answered || 0;
+                         const total = prog.total || 0;
+                         const current = prog.current || 0;
+                         const lastActive = prog.lastActive ? new Date(prog.lastActive) : null;
+                         const isIdle = lastActive && (new Date().getTime() - lastActive.getTime() > 60000); // Dianggap diam jika > 1 menit
+                         const percent = total > 0 ? Math.round((answered/total)*100) : 0;
+                         
+                         return (
+                             <div key={t.code} className={`bg-white p-5 rounded-xl border shadow-sm ${isIdle ? 'border-amber-300 bg-amber-50/30' : 'border-slate-200'}`}>
+                                 <div className="flex justify-between items-start mb-3">
+                                     <div>
+                                         <h4 className="font-bold text-slate-800 uppercase">{t.participant_name || 'NN'}</h4>
+                                         <p className="text-xs text-slate-500 font-medium">{t.participant_school || '-'}</p>
+                                     </div>
+                                     <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider ${isIdle ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{isIdle ? 'Idle' : 'Aktif'}</span>
+                                 </div>
+                                 <div className="space-y-3">
+                                     <div>
+                                         <div className="flex justify-between text-xs font-bold text-slate-600 mb-1"><span>Progres Pengerjaan</span><span>{answered} / {total} ({percent}%)</span></div>
+                                         <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden"><div className="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style={{width: `${percent}%`}}></div></div>
+                                     </div>
+                                     <div className="flex justify-between text-xs border-t pt-3">
+                                         <span className="text-slate-500 font-medium">Posisi: <strong className="text-slate-800">Soal No. {current}</strong></span>
+                                         <span className="text-slate-400">{lastActive ? lastActive.toLocaleTimeString('id-ID') : '-'}</span>
+                                     </div>
+                                 </div>
+                             </div>
+                         )
+                     })}
+                     {liveData.length === 0 && <div className="col-span-full text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300 text-slate-500 font-bold">Tidak ada peserta yang sedang mengerjakan ujian.</div>}
+                 </div>
+               </AdminLayout>
+             )
+          };
+            const AdminDashboard = () => {
              const [tempOrganizer, setTempOrganizer] = useState(organizerName);
              const [tempLogo, setTempLogo] = useState(schoolLogo);
              const [tempDate, setTempDate] = useState(examDate);
@@ -2592,6 +2664,7 @@
             case '/submitted': return <ExamSubmitted />;
             case '/admin': case '/admin/login': return <AdminLogin />;
             case '/admin/dashboard': return <AdminDashboard />;
+            case '/admin/monitor': return <AdminLiveMonitor />;
             case '/admin/tokens': return <AdminTokens />;
             case '/admin/results': return <AdminResults />;
             case '/admin/questions': return <AdminQuestions />;
