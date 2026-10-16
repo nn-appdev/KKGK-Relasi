@@ -50,7 +50,6 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef } = React;
 
-        // KREDENSIAL PROYEK BARU
         const SUPABASE_URL = 'https://ghxxxiracbwatvasdeel.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_2GqdLnhWp13aVBoR7u6xqg_R5pnH3_g';
         let supabase = null;
@@ -127,7 +126,6 @@
             throw new Error("Semua jalur CDN diblokir oleh jaringan atau browser Anda. Gunakan Live Server atau ganti koneksi internet.");
         };
 
-        // KUNCI PERBAIKAN: Dibungkus dengan React.memo agar DOM tidak di-reset saat state parent (seperti memilih jawaban) berubah.
         const MathContent = React.memo(({ html, className = "" }) => {
             const divRef = useRef(null);
             
@@ -144,7 +142,7 @@
                         throwOnError: false
                     });
                 }
-            }, [html]); // Efek ini HANYA berjalan jika 'html' murni berubah, bukan saat jawaban diklik.
+            }, [html]); 
 
             return <div ref={divRef} className={`rich-text-content ${className}`} dangerouslySetInnerHTML={{ __html: html || '' }} />;
         });
@@ -609,6 +607,30 @@
             
             useEffect(() => {
                 if (!activeSession || activeSession.status !== 'ACTIVE') return;
+                
+                const updateProgress = async () => {
+                    try {
+                        const db = await getSupabase();
+                        const answeredCount = Object.keys(activeSession.answers || {}).length;
+                        const totalQ = activeSession.sessionQuestions?.length || 0;
+                        
+                        await db.from('tokens').update({ 
+                            live_progress: { 
+                                answered: answeredCount, 
+                                total: totalQ, 
+                                current: activeSession.examCurrentIndex + 1, 
+                                lastActive: new Date().getTime() 
+                            } 
+                        }).eq('code', activeSession.token);
+                    } catch (e) {}
+                };
+
+                const timer = setTimeout(updateProgress, 1500);
+                return () => clearTimeout(timer);
+            }, [activeSession?.answers, activeSession?.examCurrentIndex]);
+
+            useEffect(() => {
+                if (!activeSession || activeSession.status !== 'ACTIVE') return;
                 const preventDefaultAction = (e) => e.preventDefault();
                 const handleVisibilityChange = () => {
                     if (document.hidden) {
@@ -654,7 +676,6 @@
             const handleAnswerChange = (val) => { setActiveSession(prev => ({ ...prev, answers: { ...prev.answers, [currentQuestion.id]: val } })); };
             const toggleFlag = () => { setActiveSession(prev => ({ ...prev, flagged: isFlagged ? prev.flagged.filter(id => id !== currentQuestion.id) : [...(prev.flagged || []), currentQuestion.id] })); };
 
-            // KUNCI PERBAIKAN: Hapus setTimeout agar soal tidak auto-next
             const handleAnswerChangeMCQ = (val) => {
                 handleAnswerChange(val);
             };
@@ -871,8 +892,8 @@
             const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
             if (!isAdminLoggedIn) { navigate('/admin/login'); return null; }
             const menu = [
-              { id: 'monitor', label: 'Pantau Ujian', icon: Activity, path: '/admin/monitor' },
               { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+              { id: 'monitor', label: 'Pantau Ujian', icon: Activity, path: '/admin/monitor' },
               { id: 'questions', label: 'Bank Soal', icon: Database, path: '/admin/questions' },
               { id: 'tokens', label: 'Token Ujian', icon: Key, path: '/admin/tokens' },
               { id: 'results', label: 'Hasil Ujian', icon: CheckSquare, path: '/admin/results' },
@@ -914,7 +935,7 @@
                  fetchLive();
                  let interval;
                  if (isPolling) {
-                     interval = setInterval(fetchLive, 5000); // Admin tarik data tiap 5 detik
+                     interval = setInterval(fetchLive, 5000); 
                  }
                  return () => clearInterval(interval);
              }, [isPolling]);
@@ -938,7 +959,7 @@
                          const total = prog.total || 0;
                          const current = prog.current || 0;
                          const lastActive = prog.lastActive ? new Date(prog.lastActive) : null;
-                         const isIdle = lastActive && (new Date().getTime() - lastActive.getTime() > 60000); // Dianggap diam jika > 1 menit
+                         const isIdle = lastActive && (new Date().getTime() - lastActive.getTime() > 60000); 
                          const percent = total > 0 ? Math.round((answered/total)*100) : 0;
                          
                          return (
@@ -968,7 +989,8 @@
                </AdminLayout>
              )
           };
-            const AdminDashboard = () => {
+
+          const AdminDashboard = () => {
              const [tempOrganizer, setTempOrganizer] = useState(organizerName);
              const [tempLogo, setTempLogo] = useState(schoolLogo);
              const [tempDate, setTempDate] = useState(examDate);
@@ -2304,6 +2326,7 @@
                 link.download = `Analisis_Butir_Soal_${filterFolder}_${new Date().getTime()}.csv`; link.click();
             };
 
+            // FITUR BARU: Download PDF Khusus Analisis Individu (Matriks B/S/P/K)
             const downloadMatrixPDF = () => {
                 if (matrixResults.length === 0) return alert("Tidak ada data untuk dicetak.");
                 
