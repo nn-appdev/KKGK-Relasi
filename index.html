@@ -17,7 +17,6 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- KUNCI PERBAIKAN 1: Paksa CDN mengirim format UMD (.min.js) secara spesifik -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
     <style>
@@ -25,19 +24,16 @@
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; -webkit-font-smoothing: antialiased; }
         .rich-text-content { white-space: pre-wrap; word-wrap: break-word; line-height: 1.6; }
         .rich-text-content p { min-height: 1.5rem; margin-bottom: 0.5rem; }
-        
         .rich-text-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0; display: inline-block; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .rich-text-content [style*="text-align: left"], .rich-text-content [align="left"] { text-align: left !important; }
         .rich-text-content [style*="text-align: center"], .rich-text-content [align="center"] { text-align: center !important; }
         .rich-text-content [style*="text-align: right"], .rich-text-content [align="right"] { text-align: right !important; }
         .rich-text-content [style*="text-align: justify"], .rich-text-content [align="justify"] { text-align: justify !important; }
         .math-tex { font-size: 1.15em; font-weight: normal; }
-        
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
         @media print {
             body, html { background: white !important; height: auto !important; }
             nav, header, button, .print\:hidden { display: none !important; }
@@ -54,8 +50,9 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef } = React;
 
-        const SUPABASE_URL = 'https://xltrmoeabasrconlhijv.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_kzMgSC5JniUeJZGBGW1RIA_7aKyk0vh';
+        // KREDENSIAL PROYEK BARU
+        const SUPABASE_URL = 'https://ghxxxiracbwatvasdeel.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_2GqdLnhWp13aVBoR7u6xqg_R5pnH3_g';
         let supabase = null;
 
         const Monitor = ({size=24, className=""}) => <i className={`fas fa-desktop ${className}`} style={{fontSize: size}}></i>;
@@ -89,62 +86,50 @@
 
         const getSupabase = async () => {
             if (supabase) return supabase;
-
-            // Tahap 1: Cek apakah script di <head> berhasil dimuat
             if (window.supabase) {
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 return supabase;
             }
-
-            // Tahap 2: Tunggu sebentar (maks 2.5 detik), mungkin internet melambat
             let retries = 25;
             while (!window.supabase && retries > 0) {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 retries--;
             }
-
             if (window.supabase) {
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 return supabase;
             }
-
-            // Tahap 3: Darurat. Multi-CDN Fallback (Jika 1 diblokir, coba yang lain)
             const cdnList = [
                 'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js',
-                'https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.3/supabase.umd.min.js', // CDN Cloudflare (Paling kebal blokir)
+                'https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.3/supabase.umd.min.js',
                 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js'
             ];
-
             for (const cdnUrl of cdnList) {
                 try {
                     await new Promise((resolve, reject) => {
                         const script = document.createElement('script');
                         script.src = cdnUrl;
                         script.crossOrigin = 'anonymous';
-                        
                         script.onload = () => {
                             if (window.supabase) resolve();
                             else reject(new Error("Dimuat tapi window.supabase kosong."));
                         };
-                        
                         script.onerror = () => reject(new Error(`Gagal memuat ${cdnUrl}`));
                         document.head.appendChild(script);
                     });
-                    
                     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                     return supabase;
                 } catch (e) {
                     console.warn(`Fallback CDN Gagal: ${e.message}. Mencoba jalur lain...`);
                 }
             }
-            
-            throw new Error("Semua jalur CDN diblokir oleh jaringan atau browser Anda. Gunakan Live Server (Bukan file:///) atau ganti koneksi internet.");
+            throw new Error("Semua jalur CDN diblokir oleh jaringan atau browser Anda. Gunakan Live Server atau ganti koneksi internet.");
         };
 
         const RichTextEditor = ({ value, onChange, placeholder, minHeight="120px" }) => {
             const editorRef = useRef(null);
             const fileInputRef = useRef(null);
-            const [isUploading, setIsUploading] = useState(false); // State untuk loading indikator
+            const [isUploading, setIsUploading] = useState(false);
 
             useEffect(() => {
                 if (editorRef.current && value !== editorRef.current.innerHTML) editorRef.current.innerHTML = value || '';
@@ -163,46 +148,39 @@
                 handleInput(); 
             };
 
+            // LOGIKA BARU: Unggah ke Supabase Storage, BUKAN Base64
             const handleImageUpload = async (e) => {
                 const file = e.target.files[0];
-                if (!file) return;
+                if (file) {
+                    setIsUploading(true);
+                    try {
+                        const db = await getSupabase();
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2,9)}.${fileExt}`;
+                        
+                        // Unggah ke bucket 'soal-images'
+                        const { data, error } = await db.storage
+                            .from('soal-images')
+                            .upload(fileName, file, { cacheControl: '3600', upsert: false });
 
-                setIsUploading(true);
-                try {
-                    const db = await getSupabase();
-                    
-                    // Generate nama file acak yang unik agar tidak menimpa file lain
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
-                    const filePath = `public/${fileName}`;
+                        if (error) throw error;
 
-                    // 1. Upload File Fisik ke Supabase Storage (Bucket: soal-images)
-                    const { data, error } = await db.storage
-                        .from('soal-images')
-                        .upload(filePath, file, {
-                            cacheControl: '3600',
-                            upsert: false
-                        });
+                        // Ambil URL Publik
+                        const { data: { publicUrl } } = db.storage
+                            .from('soal-images')
+                            .getPublicUrl(fileName);
 
-                    if (error) throw error;
-
-                    // 2. Ambil Public URL dari file yang baru saja diunggah
-                    const { data: { publicUrl } } = db.storage
-                        .from('soal-images')
-                        .getPublicUrl(filePath);
-
-                    // 3. Masukkan Public URL ke dalam editor teks (hanya teks URL yang disimpan di Database)
-                    const imgHTML = `<img src="${publicUrl}" alt="Gambar Soal" style="max-width: 100%; width: auto; max-height: 250px; border-radius: 8px; margin: 8px 0; object-fit: contain; display: block;" /><br/>`;
-                    
-                    editorRef.current.focus();
-                    document.execCommand('insertHTML', false, imgHTML);
-                    handleInput();
-
-                } catch (error) {
-                    alert("Gagal mengunggah gambar ke Storage: \nPastikan Anda sudah membuat bucket 'soal-images' dan mengatur Policies-nya.\nDetail: " + error.message);
-                } finally {
-                    setIsUploading(false);
-                    if (fileInputRef.current) fileInputRef.current.value = ''; // Reset input agar bisa upload file yang sama
+                        // Sisipkan URL ke editor
+                        const imgHTML = `<img src="${publicUrl}" alt="Gambar" style="max-width: 100%; width: auto; max-height: 250px; border-radius: 8px; margin: 8px 0; object-fit: contain; display: block;" /><br/>`;
+                        editorRef.current.focus();
+                        document.execCommand('insertHTML', false, imgHTML);
+                        handleInput();
+                    } catch (err) {
+                        alert("Gagal mengunggah gambar ke Storage: " + err.message + "\n\nPastikan bucket 'soal-images' sudah dibuat dan memiliki policy insert/select yang benar.");
+                    } finally {
+                        setIsUploading(false);
+                        e.target.value = null; // Reset input
+                    }
                 }
             };
 
@@ -233,11 +211,9 @@
                         <button onMouseDown={(e)=>execCmd('justifyFull', e)} type="button" className="w-8 h-8 text-slate-700 hover:bg-slate-200 rounded flex items-center justify-center" title="Rata Kanan Kiri (Justify)"><i className="fas fa-align-justify text-xs"></i></button>
 
                         <div className="w-px h-5 bg-slate-300 mx-1"></div>
-                        
-                        {/* Tombol Upload Gambar dengan Indikator Loading */}
-                        <button onMouseDown={(e)=>{ if(e) e.preventDefault(); if(!isUploading) fileInputRef.current.click();}} type="button" className={`h-8 px-2.5 text-slate-700 hover:bg-slate-200 rounded flex items-center text-xs font-semibold ${isUploading ? 'opacity-60 cursor-not-allowed' : ''}`}>
-                            {isUploading ? <i className="fas fa-spinner fa-spin mr-1 text-emerald-600"></i> : <ImageIcon size={14} className="mr-1 text-emerald-600"/>}
-                            {isUploading ? 'Mengunggah...' : 'Gambar'}
+                        <button onMouseDown={(e)=>{ if(e) e.preventDefault(); fileInputRef.current.click();}} disabled={isUploading} type="button" className="h-8 px-2.5 text-slate-700 hover:bg-slate-200 rounded flex items-center text-xs font-semibold disabled:opacity-50">
+                            {isUploading ? <i className="fas fa-spinner fa-spin mr-1"></i> : <ImageIcon size={14} className="mr-1 text-emerald-600"/>} 
+                            {isUploading ? 'Loading...' : 'Gambar'}
                         </button>
                         
                         <div className="w-px h-5 bg-slate-300 mx-1"></div>
@@ -928,12 +904,24 @@
              const [tempRandomOpt, setTempRandomOpt] = useState(isRandomOpt);
              const [isSaving, setIsSaving] = useState(false);
 
-             const handleLogoUpload = (e) => {
+             const handleLogoUpload = async (e) => {
                  const file = e.target.files[0];
                  if (file) {
-                     const reader = new FileReader();
-                     reader.onloadend = () => setTempLogo(reader.result);
-                     reader.readAsDataURL(file);
+                    setIsSaving(true);
+                    try {
+                        const db = await getSupabase();
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `logo_${Date.now()}.${fileExt}`;
+                        
+                        const { data, error } = await db.storage.from('soal-images').upload(fileName, file);
+                        if (error) throw error;
+
+                        const { data: { publicUrl } } = db.storage.from('soal-images').getPublicUrl(fileName);
+                        setTempLogo(publicUrl);
+                    } catch (err) {
+                        alert("Gagal upload logo: " + err.message);
+                    }
+                    setIsSaving(false);
                  }
              };
 
@@ -1180,7 +1168,6 @@
                     )}
                  </div>
                  
-                 {/* Modal Import (Dipersingkat tampilannya) */}
                  {showImport && (
                      <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
                         <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-5">
@@ -1242,7 +1229,6 @@
                </AdminLayout>
              );
           };
-
           const AdminResults = () => {
              const [selectedAnalysis, setSelectedAnalysis] = useState(null);
              const [filterSchool, setFilterSchool] = useState('Semua');
@@ -2188,6 +2174,7 @@
                 
                 const printWindow = window.open('', '_blank');
                 
+                // Rakit Header Tabel
                 let tableHeaders = `<th style="width: 30px;">No</th><th style="text-align: left;">Nama Peserta</th>`;
                 filteredQuestions.forEach((q, i) => {
                     const tooltip = (q.question || '').replace(/<[^>]+>/g, '').replace(/"/g, "'");
@@ -2195,6 +2182,7 @@
                 });
                 tableHeaders += `<th style="width: 50px;">Skor</th><th style="width: 50px;">Nilai</th>`;
 
+                // Rakit Isi/Baris Tabel
                 let tableRows = '';
                 matrixResults.forEach((r, i) => {
                     const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
@@ -2429,6 +2417,7 @@
                  return matchSchool && matchDate;
              });
              
+             // Logika Sortir Lengkap (Waktu, Nama, Ranking)
              if (sortOrder === 'RANK_DESC') {
                  processedResults.sort((a, b) => b.score - a.score);
              } else if (sortOrder === 'RANK_ASC') {
@@ -2437,6 +2426,7 @@
                  processedResults.sort((a, b) => (a.participant?.name || '').localeCompare(b.participant?.name || ''));
              }
 
+             // Kalkulasi Statistik Logis (Mean & Std Dev)
              const scores = processedResults.map(r => r.score);
              const validCount = scores.length;
              const meanScore = validCount > 0 ? (scores.reduce((a,b) => a + b, 0) / validCount) : 0;
