@@ -1587,32 +1587,29 @@
                                             
                                             if (q.type === 'MCQ') {
                                                 const correctOpt = q.options?.find(o => o.id === q.correctAnswer);
-                                                const tmpK = document.createElement("div"); tmpK.innerHTML = correctOpt?.text || q.correctAnswer;
-                                                keyDisplay = <div className="mt-3 p-2 bg-emerald-50 rounded border border-emerald-100 text-xs text-slate-700 font-medium"><strong className="text-emerald-700">Kunci Jawaban: {q.correctAnswer}</strong> - {tmpK.textContent}</div>;
+                                                keyDisplay = <div className="mt-3 p-2 bg-emerald-50 rounded border border-emerald-100 text-xs text-slate-700 font-medium flex items-start gap-1"><strong className="text-emerald-700 whitespace-nowrap">Kunci Jawaban: {q.correctAnswer} - </strong> <MathContent html={correctOpt?.text || q.correctAnswer} /></div>;
                                                 if (!d.isEmpty && d.userAnswer) {
                                                     const opt = q.options?.find(o => o.id === d.userAnswer);
-                                                    const tmp = document.createElement("div"); tmp.innerHTML = opt?.text || d.userAnswer;
-                                                    ansDisplay = <div className="font-medium text-slate-800"><strong className="text-blue-600">{d.userAnswer}.</strong> {tmp.textContent}</div>;
+                                                    ansDisplay = <div className="font-medium text-slate-800 flex items-start gap-1"><strong className="text-blue-600">{d.userAnswer}.</strong> <MathContent html={opt?.text || d.userAnswer} /></div>;
                                                 }
                                             } else if (q.type === 'MCMA') {
-                                                const correctTexts = (q.correctAnswers||[]).map(ansId => {
+                                                keyDisplay = <div className="mt-3 p-2 bg-emerald-50 rounded border border-emerald-100 text-xs text-slate-700 font-medium"><strong className="text-emerald-700 block mb-1">Kunci (Pilih Semua):</strong> <ul className="list-disc pl-4">{(q.correctAnswers||[]).map((ansId, ii)=>{
                                                     const stmt = q.statements?.find(s => String(s.id) === String(ansId));
-                                                    const t = document.createElement("div"); t.innerHTML = stmt?.text || ansId; return t.textContent;
-                                                });
-                                                keyDisplay = <div className="mt-3 p-2 bg-emerald-50 rounded border border-emerald-100 text-xs text-slate-700 font-medium"><strong className="text-emerald-700 block mb-1">Kunci (Pilih Semua):</strong> <ul className="list-disc pl-4">{correctTexts.map((txt, ii)=><li key={ii}>{txt}</li>)}</ul></div>;
+                                                    return <li key={ii}><MathContent html={stmt?.text || ansId} /></li>;
+                                                })}</ul></div>;
                                                 if (!d.isEmpty && Array.isArray(d.userAnswer)) {
                                                     ansDisplay = <ul className="list-disc pl-4 space-y-1">{d.userAnswer.map(ansId => {
-                                                        const stmt = q.statements?.find(s => String(s.id) === String(ansId)); const tmp = document.createElement("div"); tmp.innerHTML = stmt?.text || ansId;
-                                                        return <li key={ansId} className="text-xs font-medium text-slate-700">{tmp.textContent}</li>;
+                                                        const stmt = q.statements?.find(s => String(s.id) === String(ansId));
+                                                        return <li key={ansId} className="text-xs font-medium text-slate-700"><MathContent html={stmt?.text || ansId} /></li>;
                                                     })}</ul>;
                                                 }
                                             } else if (q.type === 'CATEGORY') {
                                                 if (!d.isEmpty && d.userAnswer) {
                                                     const keys = Object.keys(d.userAnswer);
                                                     ansDisplay = <ul className="space-y-2">{keys.map(k => {
-                                                        const stmt = q.statements?.find(s => String(s.id) === String(k)); const tmp = document.createElement("div"); tmp.innerHTML = stmt?.text || k;
+                                                        const stmt = q.statements?.find(s => String(s.id) === String(k));
                                                         const isCorrectLine = d.userAnswer[k] === stmt?.correctCategory;
-                                                        return <li key={k} className="text-xs text-slate-600 bg-slate-50 p-2 rounded border leading-snug"><div className="mb-1 text-[10px] font-bold text-slate-400">Pernyataan: <span className="text-slate-700 font-medium">{tmp.textContent}</span></div> <span className={`font-bold px-1.5 py-0.5 rounded text-white ${isCorrectLine ? 'bg-emerald-500' : 'bg-rose-500'}`}>{d.userAnswer[k]}</span> <span className="text-slate-400 ml-1">(Kunci: {stmt?.correctCategory})</span></li>;
+                                                        return <li key={k} className="text-xs text-slate-600 bg-slate-50 p-2 rounded border leading-snug"><div className="mb-1 text-[10px] font-bold text-slate-400">Pernyataan: <MathContent html={stmt?.text || k} className="text-slate-700 font-medium inline-block" /></div> <span className={`font-bold px-1.5 py-0.5 rounded text-white ${isCorrectLine ? 'bg-emerald-500' : 'bg-rose-500'}`}>{d.userAnswer[k]}</span> <span className="text-slate-400 ml-1">(Kunci: {stmt?.correctCategory})</span></li>;
                                                     })}</ul>;
                                                 }
                                             }
