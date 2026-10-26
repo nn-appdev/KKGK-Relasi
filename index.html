@@ -874,7 +874,7 @@
             const [u, setU] = useState(''); const [p, setP] = useState(''); const [showP, setShowP] = useState(false);
             return (
               <div className="min-h-screen bg-slate-900 flex justify-center items-center p-4">
-                <form onSubmit={(e)=>{e.preventDefault(); if(u==='admin'&&p==='admin123'){setIsAdminLoggedIn(true); navigate('/admin/dashboard');}else alert('Salah');}} className="bg-white p-8 rounded-2xl max-w-sm w-full shadow-2xl">
+                <form onSubmit={(e)=>{e.preventDefault(); if(u==='admin'&&p==='kkgkrelasi26'){setIsAdminLoggedIn(true); navigate('/admin/dashboard');}else alert('Salah');}} className="bg-white p-8 rounded-2xl max-w-sm w-full shadow-2xl">
                    <div className="text-center mb-6"><div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3"><Settings size={24}/></div><h1 className="text-xl font-bold text-slate-800">Admin</h1></div>
                    <input type="text" placeholder="Username" value={u} onChange={e=>setU(e.target.value)} className="w-full p-3 border rounded-lg mb-3 text-sm" required/>
                    <div className="relative mb-6">
