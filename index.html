@@ -994,8 +994,6 @@
           const AdminTokens = () => {
              const [isSaving, setIsSaving] = useState(false);
              const [showImport, setShowImport] = useState(false);
-             const [selectedFile, setSelectedFile] = useState(null);
-             const [fileUploadError, setFileUploadError] = useState('');
              const [isMassEdit, setIsMassEdit] = useState(false);
              const [massEditTokens, setMassEditTokens] = useState([]);
              
@@ -1003,6 +1001,7 @@
              const [downloadFilter, setDownloadFilter] = useState('Semua');
              const [editFilter, setEditFilter] = useState('Semua');
              const [sortOrder, setSortOrder] = useState('DEFAULT');
+             const [selectedFile, setSelectedFile] = useState(null);
 
              const actualTokens = tokens.filter(t => !t.code.startsWith('SYS_SETTING_') && !t.code.startsWith('SYS_FOLDER_'));
              const uniqueClasses = [...new Set(actualTokens.map(t => t.participant_school).filter(Boolean))];
@@ -1085,9 +1084,9 @@
                  link.setAttribute("download", "Template_Peserta.csv");
                  document.body.appendChild(link); link.click(); document.body.removeChild(link);
              };
-              const handleUploadPeserta = (e) => {
-                 const file = e.target.files[0];
-                 if (!file) return;
+
+             const processImport = () => {
+                 if (!selectedFile) return alert("Pilih file CSV terlebih dahulu!");
                  setIsSaving(true);
                  
                  const reader = new FileReader();
@@ -1097,11 +1096,9 @@
                          const lines = text.split('\n').filter(l => l.trim() !== '');
                          const payloads = [];
                          
-                         // Lewati baris pertama jika itu adalah header (Nama Peserta,Asal Sekolah)
                          const startIndex = lines[0].toLowerCase().includes('nama') ? 1 : 0;
                          
                          for (let i = startIndex; i < lines.length; i++) {
-                             // Pisahkan berdasarkan koma dan bersihkan tanda kutip
                              const cols = lines[i].split(',');
                              if (cols.length >= 2) {
                                  const name = cols[0].trim().replace(/(^"|"$)/g, '');
@@ -1126,15 +1123,15 @@
 
                          alert(`Berhasil mengimpor ${payloads.length} data peserta!`);
                          setShowImport(false);
-                         fetchSupabaseData(); // Segarkan tabel data
+                         setSelectedFile(null); 
+                         fetchSupabaseData(); 
                      } catch (err) {
                          alert("Gagal impor peserta: " + err.message);
                      } finally {
                          setIsSaving(false);
-                         e.target.value = null; // Reset input agar bisa upload file yang sama lagi
                      }
                  };
-                 reader.readAsText(file);
+                 reader.readAsText(selectedFile);
              };
 
              const addManual = async () => {
@@ -1230,9 +1227,29 @@
                  {showImport && (
                      <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
                         <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-5">
-                            <div className="flex justify-between items-center mb-4"><h3 className="font-bold">Impor Peserta</h3><button onClick={()=>setShowImport(false)}><X size={18}/></button></div>
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-bold">Impor Peserta</h3>
+                                <button onClick={()=>{setShowImport(false); setSelectedFile(null);}}><X size={18}/></button>
+                            </div>
                             <button onClick={downloadTemplateCSV} className="mb-4 bg-blue-50 border text-blue-700 px-4 py-2 rounded-lg text-sm font-semibold flex items-center"><FileText size={16} className="mr-2"/> Download Templat</button>
-                            <input type="file" accept=".csv" onChange={()=>{}} className="w-full p-4 border-2 border-dashed rounded-xl"/>
+                            
+                            <div className="space-y-4">
+                                <input 
+                                    type="file" 
+                                    accept=".csv" 
+                                    onChange={(e) => setSelectedFile(e.target.files[0])} 
+                                    disabled={isSaving}
+                                    className="w-full p-4 border-2 border-dashed border-slate-300 rounded-xl text-sm font-medium text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer disabled:opacity-50"
+                                />
+                                
+                                <button 
+                                    onClick={processImport} 
+                                    disabled={!selectedFile || isSaving}
+                                    className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 disabled:opacity-50 flex justify-center items-center transition-colors shadow-md"
+                                >
+                                    {isSaving ? <><i className="fas fa-spinner fa-spin mr-2"></i> Memproses...</> : "Impor Data Sekarang"}
+                                </button>
+                            </div>
                         </div>
                      </div>
                  )}
