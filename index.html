@@ -171,6 +171,13 @@
             const handleImageUpload = async (e) => {
                 const file = e.target.files[0];
                 if (file) {
+                    // Validasi MAKSIMAL 1 MB untuk efisiensi egress dan loading siswa
+                    if (file.size > 1 * 1024 * 1024) {
+                        alert("DITOLAK: Ukuran gambar melebihi batas 1 MB.\n\nSistem menolak gambar sebesar ini karena akan membuat ujian siswa menjadi lambat (ngelag) dan menghabiskan kuota/egress server. Silakan kompres (perkecil) ukuran file gambar Anda terlebih dahulu.");
+                        e.target.value = null;
+                        return;
+                    }
+
                     setIsUploading(true);
                     try {
                         const db = await getSupabase();
@@ -187,12 +194,20 @@
                             .from('soal-images')
                             .getPublicUrl(fileName);
 
-                        const imgHTML = `<div style="text-align: center; margin: 10px 0;"><img src="${publicUrl}" alt="Gambar Soal" width="300" style="max-width: 100%; height: auto; border-radius: 8px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" /></div><p><br/></p>`;
+                        // Prompt strategis untuk meminta ukuran gambar presisi dari admin
+                        let imgWidth = prompt("Gambar berhasil diunggah!\n\nTentukan lebar gambar agar tidak terlalu besar di layar siswa:\n(Ketik angka pixel, contoh: 300px, 150px, atau 50%)", "300px");
+                        
+                        // Fallback jika admin menekan cancel atau mengosongkan
+                        if (!imgWidth || imgWidth.trim() === '') imgWidth = '100%';
+
+                        // Format div text-align center agar gambar selalu rata tengah
+                        const imgHTML = `<div style="text-align: center; margin: 10px 0;"><img src="${publicUrl}" alt="Gambar Soal" style="width: ${imgWidth}; max-width: 100%; height: auto; border-radius: 8px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" /></div><p><br/></p>`;
+                        
                         editorRef.current.focus();
                         document.execCommand('insertHTML', false, imgHTML);
                         handleInput();
                     } catch (err) {
-                        alert("Gagal mengunggah gambar ke Storage: " + err.message + "\n\nPastikan bucket 'soal-images' sudah dibuat dan memiliki policy insert/select yang benar.");
+                        alert("Gagal mengunggah gambar ke Storage: " + err.message);
                     } finally {
                         setIsUploading(false);
                         e.target.value = null; 
