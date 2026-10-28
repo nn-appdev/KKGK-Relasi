@@ -355,6 +355,8 @@
           const [tokens, setTokens] = useState([]);
           const [results, setResults] = useState([]);
           const [questions, setQuestions] = useState([]);
+          const [totalAngkaSoal, setTotalAngkaSoal] = useState(0);
+          const [totalAngkaToken, setTotalAngkaToken] = useState(0);
           
           const [activeFolder, setActiveFolder] = useState('Utama');
           const [organizerName, setOrganizerName] = useState('KKGK Relasi Wonosobo');
@@ -382,7 +384,10 @@
 // 1. Eksekusi kueri dengan sisipan parameter { count: 'exact' }
 const [qRes, tRes] = await Promise.all([
     db.from('questions').select('*', { count: 'exact' }),
-    db.from('tokens').select('*', { count: 'exact' }).order('generatedAt', { ascending: false })
+    db.from('tokens').select('*', { count: 'exact' })
+      .not('code', 'like', 'SYS_%')
+      .eq('status', 'AVAILABLE')
+      .order('generatedAt', { ascending: false })
 ]);
 
 // 2. Ekstraksi hasil secara spesifik agar tidak rancu
@@ -391,24 +396,17 @@ const totalQuestions = qRes.count || 0; // Total akurat soal di database
 
 const tokensData = tRes.data || [];
 const totalTokens = tRes.count || 0; // Total akurat token (menembus limit 999)
-
-/* 
-   INSTRUKSI PENTING UNTUK BARIS DI BAWAH KODE INI:
-   Cari baris kode Anda yang bertugas mencetak angka ke layar dasbor.
-   
-   HAPUS KODE LAMA YANG SEPERTI INI:
-   document.getElementById('id-elemen').innerText = tRes.data.length;
-   
-   GANTI MENJADI KODE INI:
-   document.getElementById('id-elemen').innerText = totalTokens;
-*/
-                
+              
                 if(qRes.error) throw qRes.error;
                 if(tRes.error) throw tRes.error;
                 
-                if(qRes.data) setQuestions(qRes.data);
+                if(qRes.data) {
+                    setQuestions(qRes.data);
+                    setTotalAngkaSoal(qRes.count); 
+                }
                 if(tRes.data) {
-                    setTokens(tRes.data);
+                setTokens(tRes.data);
+                setTotalAngkaToken(tRes.count);
                     
                     const fToken = tRes.data.find(t => t.code === 'SYS_SETTING_FOLDER');
                     if (fToken) setActiveFolder(fToken.status);
@@ -995,8 +993,8 @@ const totalTokens = tRes.count || 0; // Total akurat token (menembus limit 999)
                 <AdminLayout title="Dashboard">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                     <div className="bg-white p-5 rounded-xl border shadow-sm"><div className="text-slate-500 text-xs mb-1">Peserta Selesai</div><div className="text-2xl font-bold">{results.length}</div></div>
-                    <div className="bg-white p-5 rounded-xl border shadow-sm"><div className="text-slate-500 text-xs mb-1">Total Soal</div><div className="text-2xl font-bold">{questions.length}</div></div>
-                    <div className="bg-white p-5 rounded-xl border shadow-sm"><div className="text-slate-500 text-xs mb-1">Token Tersedia</div><div className="text-2xl font-bold">{tokens.filter(t => !t.code.startsWith('SYS_') && t.status === 'AVAILABLE').length}</div></div>
+                    <div className="bg-white p-5 rounded-xl border shadow-sm"><div className="text-slate-500 text-xs mb-1">Total Soal</div><div className="text-2xl font-bold">{totalAngkaSoal}</div></div>
+                    <div className="bg-white p-5 rounded-xl border shadow-sm"><div className="text-slate-500 text-xs mb-1">Token Tersedia</div><div className="text-2xl font-bold">{totalAngkaToken}</div></div>
                 </div>
 
                 <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 mb-8">
