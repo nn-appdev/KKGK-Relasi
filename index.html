@@ -987,13 +987,8 @@ const totalTokens = tRes.count || 0; // Total akurat token (menembus limit 999)
                         upsertSetting('SYS_SETTING_RANDOM_OPT', tempRandomOpt ? 'TRUE' : 'FALSE')
                     ]);
 
-                    setOrganizerName(tempOrganizer);
-                    setSchoolLogo(tempLogo);
-                    setExamDate(tempDate);
-                    setStartTimeStr(tempStartTime);
-                    setEndTimeStr(tempEndTime);
-                    setIsRandomQ(tempRandomQ);
-                    setIsRandomOpt(tempRandomOpt);
+                    // Panggil fetchSupabaseData untuk update state pusat di App()
+                    await fetchSupabaseData();
                     alert("Pengaturan berhasil disimpan!");
                 } catch(e) { alert("Gagal: " + e.message); }
                 setIsSaving(false);
@@ -1998,7 +1993,8 @@ const totalTokens = tRes.count || 0; // Total akurat token (menembus limit 999)
                         const { error } = await db.from('tokens').insert([{ code: 'SYS_SETTING_FOLDER', status: fname, generatedAt: new Date().toISOString() }]);
                         if (error) throw error;
                     }
-                    setActiveFolder(fname);
+                    // Panggil fetchSupabaseData untuk update state pusat di App() agar perubahan langsung terlihat di seluruh sistem.
+                    await fetchSupabaseData(); 
                     alert(`Folder "${fname}" berhasil diterbitkan ke peserta!`);
                 } catch(e) { alert("Gagal terbit: " + e.message); }
             };
