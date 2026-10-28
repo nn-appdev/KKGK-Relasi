@@ -381,13 +381,10 @@
              try {
                 const db = await getSupabase();
 
-                // PERBAIKAN: Pisahkan query agar pengaturan (SYS_SETTING) tidak ikut terfilter dan terbaca oleh sistem
-                const [qRes, tRes, countRes] = await Promise.all([
+                // 1. Eksekusi kueri TANPA FILTER SYS_% agar semua pengaturan terbaca
+                const [qRes, tRes] = await Promise.all([
                     db.from('questions').select('*', { count: 'exact' }),
-                    db.from('tokens').select('*').order('generatedAt', { ascending: false }),
-                    db.from('tokens').select('code', { count: 'exact', head: true })
-                      .not('code', 'like', 'SYS_%')
-                      .eq('status', 'AVAILABLE')
+                    db.from('tokens').select('*').order('generatedAt', { ascending: false })
                 ]);
                 
                 if(qRes.error) throw qRes.error;
@@ -399,8 +396,10 @@
                 }
                 if(tRes.data) {
                     setTokens(tRes.data);
-                    // Menghitung angka partisipan khusus siswa
-                    setTotalAngkaToken(countRes.count || 0);
+                    
+                    // 2. Hitung jumlah token siswa secara manual (Abaikan SYS_)
+                    const jmlPeserta = tRes.data.filter(t => !t.code.startsWith('SYS_') && t.status === 'AVAILABLE').length;
+                    setTotalAngkaToken(jmlPeserta);
                     
                     const fToken = tRes.data.find(t => t.code === 'SYS_SETTING_FOLDER');
                     if (fToken) setActiveFolder(fToken.status);
