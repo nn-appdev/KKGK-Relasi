@@ -888,9 +888,19 @@
                <div className="min-h-screen bg-slate-50 flex py-10 px-4 justify-center items-center">
                    <div className="bg-white p-8 md:p-10 rounded-2xl shadow-xl max-w-2xl w-full text-center border-t-4 border-blue-600">
                       <h2 className="text-2xl font-bold mb-6 text-slate-800">Konfirmasi Selesai Ujian</h2>
-                      <div className="grid grid-cols-2 gap-4 mb-8">
-                         <div className="p-5 bg-slate-50 border rounded-xl"><p className="text-slate-500 text-sm mb-1">Total Soal</p><p className="text-4xl font-bold text-slate-800">{totalQ}</p></div>
-                         <div className="p-5 bg-emerald-50 border rounded-xl"><p className="text-emerald-700 text-sm mb-1">Dijawab</p><p className="text-4xl font-bold text-emerald-600">{ansQ}</p></div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                         <div className="p-5 bg-slate-50 border border-slate-200 rounded-xl">
+                            <p className="text-slate-500 font-semibold text-sm mb-1">Total Soal</p>
+                            <p className="text-4xl font-black text-slate-800">{totalQ}</p>
+                         </div>
+                         <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                            <p className="text-emerald-700 font-semibold text-sm mb-1">Dijawab</p>
+                            <p className="text-4xl font-black text-emerald-600">{ansQ}</p>
+                         </div>
+                         <div className="p-5 bg-rose-50 border border-rose-200 rounded-xl">
+                            <p className="text-rose-700 font-semibold text-sm mb-1">Belum Dijawab</p>
+                            <p className="text-4xl font-black text-rose-600">{totalQ - ansQ}</p>
+                         </div>
                       </div>
                       {!showConfirm ? (
                          <div className="flex gap-3">
