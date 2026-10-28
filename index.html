@@ -725,11 +725,18 @@
                   const isActive = currentAnswer === opt.id;
                   return (
                   <label key={opt.id} className={`flex items-start p-4 border rounded-xl cursor-pointer transition-all min-h-[80px] relative ${isActive ? 'border-emerald-400 bg-emerald-50 shadow-sm' : 'border-slate-200 hover:bg-slate-50'}`}>
+                    {/* Sembunyikan radio button bawaan untuk tampilan yang lebih bersih */}
                     <input type="radio" checked={isActive} onChange={() => handleAnswerChangeMCQ(opt.id)} className="sr-only" />
-                    <div className={`font-black text-lg w-7 shrink-0 pt-0.5 ${isActive ? 'text-emerald-700' : 'text-slate-600'}`}>{opt.id}.</div>
-                    <div className={`flex-1 break-words pr-6 [&_.rich-text-content>p]:!m-0 [&_.rich-text-content>p]:!min-h-0 ${isActive ? 'font-bold text-emerald-900' : 'font-medium text-slate-600'}`}>
-                        <MathContent html={opt.text} className="text-sm w-full" />
+                    
+                    {/* Abjad (A, B, C, D) yang ditonjolkan */}
+                    <div className={`font-black text-lg w-7 shrink-0 pt-0.5 ${isActive ? 'text-emerald-700' : 'text-slate-500'}`}>{opt.id}.</div>
+                    
+                    {/* Kontainer teks dengan penetralisir margin pada tag <p> bawaan rich-text-content */}
+                    <div className={`flex-1 break-words pr-6 [&_.rich-text-content>p]:!m-0 [&_.rich-text-content>p]:!min-h-0 ${isActive ? 'font-bold text-emerald-900' : 'font-medium text-slate-700'}`}>
+                        <MathRenderer html={opt.text} className="flex-1 rich-text-content text-sm w-full" />
                     </div>
+                    
+                    {/* Indikator ceklis saat aktif */}
                     {isActive && (
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-emerald-500 text-white rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
                             <CheckCircle size={14} />
@@ -756,11 +763,14 @@
                         const isActive = selectedArr.includes(stmt.id);
                         return (
                         <label key={stmt.id} className={`flex items-start p-4 border rounded-xl cursor-pointer transition-all ${isActive ? 'border-blue-400 bg-blue-50/60 shadow-sm' : 'border-slate-200 hover:bg-slate-50'}`}>
+                           {/* Kotak centang dipertahankan, angka urutan dihilangkan */}
                            <div className="shrink-0 pt-0.5">
                                <input type="checkbox" checked={isActive} onChange={() => handleToggle(stmt.id)} className="w-5 h-5 text-blue-600 rounded cursor-pointer accent-blue-600" />
                            </div>
-                           <div className={`ml-4 flex-1 break-words [&_.rich-text-content>p]:!m-0 [&_.rich-text-content>p]:!min-h-0 ${isActive ? 'font-bold text-blue-900' : 'font-medium text-slate-600'}`}>
-                               <MathContent html={stmt.text} className="text-sm w-full" />
+                           
+                           {/* Kontainer teks dengan penetralisir margin */}
+                           <div className={`ml-4 flex-1 break-words [&_.rich-text-content>p]:!m-0 [&_.rich-text-content>p]:!min-h-0 ${isActive ? 'font-bold text-blue-900' : 'font-medium text-slate-700'}`}>
+                               <MathRenderer html={stmt.text} className="flex-1 rich-text-content text-sm w-full" />
                            </div>
                         </label>
                      )})}
