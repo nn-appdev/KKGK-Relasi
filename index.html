@@ -381,32 +381,23 @@
              try {
                 const db = await getSupabase();
 
-// 1. Eksekusi kueri dengan sisipan parameter { count: 'exact' }
-const [qRes, tRes] = await Promise.all([
-    db.from('questions').select('*', { count: 'exact' }),
-    db.from('tokens').select('*', { count: 'exact' })
-      .not('code', 'like', 'SYS_%')
-      .eq('status', 'AVAILABLE')
-      .order('generatedAt', { ascending: false })
-]);
-
-// 2. Ekstraksi hasil secara spesifik agar tidak rancu
-const questionsData = qRes.data || [];
-const totalQuestions = qRes.count || 0; // Total akurat soal di database
-
-const tokensData = tRes.data || [];
-const totalTokens = tRes.count || 0; // Total akurat token (menembus limit 999)
+// Perbaikan: Ambil seluruh data token agar Pengaturan Admin (SYS) terbaca, dan hitung token siswa secara terpisah
+                const [qRes, tRes, countRes] = await Promise.all([
+                    db.from('questions').select('*', { count: 'exact' }),
+                    db.from('tokens').select('*').order('generatedAt', { ascending: false }),
+                    db.from('tokens').select('code', { count: 'exact', head: true }).not('code', 'like', 'SYS_%').eq('status', 'AVAILABLE')
+                ]);
               
                 if(qRes.error) throw qRes.error;
                 if(tRes.error) throw tRes.error;
                 
                 if(qRes.data) {
                     setQuestions(qRes.data);
-                    setTotalAngkaSoal(qRes.count); 
+                    setTotalAngkaSoal(qRes.count || qRes.data.length); 
                 }
                 if(tRes.data) {
-                setTokens(tRes.data);
-                setTotalAngkaToken(tRes.count);
+                    setTokens(tRes.data);
+                    setTotalAngkaToken(countRes.count || 0); // Total akurat token menembus limit 999
                     
                     const fToken = tRes.data.find(t => t.code === 'SYS_SETTING_FOLDER');
                     if (fToken) setActiveFolder(fToken.status);
