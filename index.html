@@ -459,7 +459,17 @@ const totalTokens = tRes.count || 0; // Total akurat token (menembus limit 999)
 
           useEffect(() => { fetchSupabaseData(); }, [isAdminLoggedIn]);
 
-          const activeQuestions = isAdminLoggedIn ? questions : questions.filter(q => String(q.folder || 'Utama').trim().toLowerCase() === String(activeFolder || 'Utama').trim().toLowerCase());
+          const activeQuestions = isAdminLoggedIn 
+            ? questions 
+            : questions.filter(q => {
+                const pJenis = activeSession?.participant?.jenis_soal;
+                // Logika baru: Prioritaskan folder khusus siswa, jika tidak ada, gunakan folder global yang diterbitkan Admin
+                const targetFolder = (pJenis && pJenis !== 'Utama') 
+                    ? pJenis 
+                    : (activeFolder || 'Utama');
+                    
+                return String(q.folder || 'Utama').trim().toLowerCase() === String(targetFolder).trim().toLowerCase();
+            });
 
           useEffect(() => {
             if (currentRoute === '/') {
