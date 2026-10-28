@@ -378,10 +378,30 @@
              setIsLoadingData(true);
              try {
                 const db = await getSupabase();
-                const [qRes, tRes] = await Promise.all([
-                    db.from('questions').select('*'),
-                    db.from('tokens').select('*').order('generatedAt', { ascending: false })
-                ]);
+
+// 1. Eksekusi kueri dengan sisipan parameter { count: 'exact' }
+const [qRes, tRes] = await Promise.all([
+    db.from('questions').select('*', { count: 'exact' }),
+    db.from('tokens').select('*', { count: 'exact' }).order('generatedAt', { ascending: false })
+]);
+
+// 2. Ekstraksi hasil secara spesifik agar tidak rancu
+const questionsData = qRes.data || [];
+const totalQuestions = qRes.count || 0; // Total akurat soal di database
+
+const tokensData = tRes.data || [];
+const totalTokens = tRes.count || 0; // Total akurat token (menembus limit 999)
+
+/* 
+   INSTRUKSI PENTING UNTUK BARIS DI BAWAH KODE INI:
+   Cari baris kode Anda yang bertugas mencetak angka ke layar dasbor.
+   
+   HAPUS KODE LAMA YANG SEPERTI INI:
+   document.getElementById('id-elemen').innerText = tRes.data.length;
+   
+   GANTI MENJADI KODE INI:
+   document.getElementById('id-elemen').innerText = totalTokens;
+*/
                 
                 if(qRes.error) throw qRes.error;
                 if(tRes.error) throw tRes.error;
