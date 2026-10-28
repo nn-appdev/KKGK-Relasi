@@ -381,10 +381,12 @@
              try {
                 const db = await getSupabase();
 
-                // 1. Eksekusi kueri TANPA FILTER SYS_% agar semua pengaturan terbaca
-                const [qRes, tRes] = await Promise.all([
-                    db.from('questions').select('*', { count: 'exact' }),
-                    db.from('tokens').select('*').order('generatedAt', { ascending: false })
+                // PERBAIKAN 1: Dobrak batas 1000 baris bawaan Supabase dengan .limit(10000)
+                // PERBAIKAN 2: Tarik data SYS_ secara khusus agar pengaturan Admin tidak pernah hilang terpotong limit
+                const [qRes, tRes, sysRes] = await Promise.all([
+                    db.from('questions').select('*', { count: 'exact' }).limit(10000),
+                    db.from('tokens').select('*').order('generatedAt', { ascending: false }).limit(10000),
+                    db.from('tokens').select('*').like('code', 'SYS_%').limit(1000)
                 ]);
                 
                 if(qRes.error) throw qRes.error;
@@ -394,40 +396,45 @@
                     setQuestions(qRes.data);
                     setTotalAngkaSoal(qRes.count || qRes.data.length); 
                 }
+                
                 if(tRes.data) {
                     setTokens(tRes.data);
                     
-                    // 2. Hitung jumlah token siswa secara manual (Abaikan SYS_)
+                    // Hitung jumlah token peserta saja secara presisi
                     const jmlPeserta = tRes.data.filter(t => !t.code.startsWith('SYS_') && t.status === 'AVAILABLE').length;
                     setTotalAngkaToken(jmlPeserta);
                     
-                    const fToken = tRes.data.find(t => t.code === 'SYS_SETTING_FOLDER');
+                    // Gabungkan token peserta dan token sistem agar pengaturan dapat dieksekusi tanpa error
+                    const allTokensAndSys = [...tRes.data, ...(sysRes.data || [])];
+                    
+                    const fToken = allTokensAndSys.find(t => t.code === 'SYS_SETTING_FOLDER');
                     if (fToken) setActiveFolder(fToken.status);
 
-                    const oToken = tRes.data.find(t => t.code === 'SYS_SETTING_ORGANIZER');
+                    const oToken = allTokensAndSys.find(t => t.code === 'SYS_SETTING_ORGANIZER');
                     if (oToken) setOrganizerName(oToken.status);
 
-                    const lToken = tRes.data.find(t => t.code === 'SYS_SETTING_LOGO');
+                    const lToken = allTokensAndSys.find(t => t.code === 'SYS_SETTING_LOGO');
                     if (lToken) setSchoolLogo(lToken.status);
 
-                    const dtToken = tRes.data.find(t => t.code === 'SYS_SETTING_DATE');
+                    const dtToken = allTokensAndSys.find(t => t.code === 'SYS_SETTING_DATE');
                     if (dtToken) setExamDate(dtToken.status);
 
-                    const stToken = tRes.data.find(t => t.code === 'SYS_SETTING_START_TIME');
+                    const stToken = allTokensAndSys.find(t => t.code === 'SYS_SETTING_START_TIME');
                     if (stToken) setStartTimeStr(stToken.status);
 
-                    const etToken = tRes.data.find(t => t.code === 'SYS_SETTING_END_TIME');
+                    const etToken = allTokensAndSys.find(t => t.code === 'SYS_SETTING_END_TIME');
                     if (etToken) setEndTimeStr(etToken.status);
 
-                    const rqToken = tRes.data.find(t => t.code === 'SYS_SETTING_RANDOM_Q');
+                    const rqToken = allTokensAndSys.find(t => t.code === 'SYS_SETTING_RANDOM_Q');
                     if (rqToken) setIsRandomQ(rqToken.status === 'TRUE');
 
-                    const roToken = tRes.data.find(t => t.code === 'SYS_SETTING_RANDOM_OPT');
+                    const roToken = allTokensAndSys.find(t => t.code === 'SYS_SETTING_RANDOM_OPT');
                     if (roToken) setIsRandomOpt(roToken.status === 'TRUE');
                 }
 
                 if (isAdminLoggedIn) {
-                   const rRes = await db.from('results').select('*').order('created_at', { ascending: false });
+                   // PERBAIKAN 3: Berikan limit(10000) juga pada tabel results agar hasil ujian tidak hilang jika siswa > 1000
+                   const rRes = await db.from('results').select('*').order('created_at', { ascending: false }).limit(10000);
                    if(rRes.error) throw rRes.error;
                    if(rRes.data) {
                       const formattedResults = rRes.data.map(r => ({
