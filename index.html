@@ -381,63 +381,84 @@
              try {
                 const db = await getSupabase();
 
-                // PERBAIKAN 1: Dobrak batas 1000 baris bawaan Supabase dengan .limit(10000)
-                // PERBAIKAN 2: Tarik data SYS_ secara khusus agar pengaturan Admin tidak pernah hilang terpotong limit
-                const [qRes, tRes, sysRes] = await Promise.all([
-                    db.from('questions').select('*', { count: 'exact' }).limit(10000),
-                    db.from('tokens').select('*').order('generatedAt', { ascending: false }).limit(10000),
-                    db.from('tokens').select('*').like('code', 'SYS_%').limit(1000)
+                // PERBAIKAN: Fungsi penarik data massal untuk mendobrak hard limit 1.000 baris Supabase
+                const fetchAllData = async (tableName) => {
+                    let allData = [];
+                    let from = 0;
+                    const step = 999;
+                    let hasMore = true;
+                    
+                    while (hasMore) {
+                        const { data, error } = await db.from(tableName).select('*').range(from, from + step);
+                        if (error) throw error;
+                        
+                        if (data && data.length > 0) {
+                            allData = [...allData, ...data];
+                            from += (step + 1);
+                        }
+                        
+                        if (!data || data.length <= step) {
+                            hasMore = false;
+                        }
+                    }
+                    return allData;
+                };
+
+                // Tarik soal (biasanya tidak lebih dari 1000, tapi tetap kita amankan) dan tarik RIBUAN token
+                const [qRes, allTokens] = await Promise.all([
+                    db.from('questions').select('*', { count: 'exact' }),
+                    fetchAllData('tokens') 
                 ]);
                 
                 if(qRes.error) throw qRes.error;
-                if(tRes.error) throw tRes.error;
                 
                 if(qRes.data) {
                     setQuestions(qRes.data);
                     setTotalAngkaSoal(qRes.count || qRes.data.length); 
                 }
                 
-                if(tRes.data) {
-                    setTokens(tRes.data);
+                if(allTokens) {
+                    // Urutkan data secara manual karena ditarik secara massal
+                    allTokens.sort((a, b) => new Date(b.generatedAt || 0) - new Date(a.generatedAt || 0));
+                    setTokens(allTokens);
                     
-                    // Hitung jumlah token peserta saja secara presisi
-                    const jmlPeserta = tRes.data.filter(t => !t.code.startsWith('SYS_') && t.status === 'AVAILABLE').length;
+                    // Hitung token khusus siswa dengan akurat
+                    const jmlPeserta = allTokens.filter(t => !t.code.startsWith('SYS_') && t.status === 'AVAILABLE').length;
                     setTotalAngkaToken(jmlPeserta);
                     
-                    // Gabungkan token peserta dan token sistem agar pengaturan dapat dieksekusi tanpa error
-                    const allTokensAndSys = [...tRes.data, ...(sysRes.data || [])];
-                    
-                    const fToken = allTokensAndSys.find(t => t.code === 'SYS_SETTING_FOLDER');
+                    // Eksekusi pengaturan sistem tanpa risiko terpotong
+                    const fToken = allTokens.find(t => t.code === 'SYS_SETTING_FOLDER');
                     if (fToken) setActiveFolder(fToken.status);
 
-                    const oToken = allTokensAndSys.find(t => t.code === 'SYS_SETTING_ORGANIZER');
+                    const oToken = allTokens.find(t => t.code === 'SYS_SETTING_ORGANIZER');
                     if (oToken) setOrganizerName(oToken.status);
 
-                    const lToken = allTokensAndSys.find(t => t.code === 'SYS_SETTING_LOGO');
+                    const lToken = allTokens.find(t => t.code === 'SYS_SETTING_LOGO');
                     if (lToken) setSchoolLogo(lToken.status);
 
-                    const dtToken = allTokensAndSys.find(t => t.code === 'SYS_SETTING_DATE');
+                    const dtToken = allTokens.find(t => t.code === 'SYS_SETTING_DATE');
                     if (dtToken) setExamDate(dtToken.status);
 
-                    const stToken = allTokensAndSys.find(t => t.code === 'SYS_SETTING_START_TIME');
+                    const stToken = allTokens.find(t => t.code === 'SYS_SETTING_START_TIME');
                     if (stToken) setStartTimeStr(stToken.status);
 
-                    const etToken = allTokensAndSys.find(t => t.code === 'SYS_SETTING_END_TIME');
+                    const etToken = allTokens.find(t => t.code === 'SYS_SETTING_END_TIME');
                     if (etToken) setEndTimeStr(etToken.status);
 
-                    const rqToken = allTokensAndSys.find(t => t.code === 'SYS_SETTING_RANDOM_Q');
+                    const rqToken = allTokens.find(t => t.code === 'SYS_SETTING_RANDOM_Q');
                     if (rqToken) setIsRandomQ(rqToken.status === 'TRUE');
 
-                    const roToken = allTokensAndSys.find(t => t.code === 'SYS_SETTING_RANDOM_OPT');
+                    const roToken = allTokens.find(t => t.code === 'SYS_SETTING_RANDOM_OPT');
                     if (roToken) setIsRandomOpt(roToken.status === 'TRUE');
                 }
 
                 if (isAdminLoggedIn) {
-                   // PERBAIKAN 3: Berikan limit(10000) juga pada tabel results agar hasil ujian tidak hilang jika siswa > 1000
-                   const rRes = await db.from('results').select('*').order('created_at', { ascending: false }).limit(10000);
-                   if(rRes.error) throw rRes.error;
-                   if(rRes.data) {
-                      const formattedResults = rRes.data.map(r => ({
+                   // Tarik RIBUAN hasil ujian peserta tanpa terpotong
+                   const allResults = await fetchAllData('results');
+                   
+                   if(allResults) {
+                      allResults.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                      const formattedResults = allResults.map(r => ({
                          id: r.id,
                          participant: { name: r.participant_name, school: r.participant_school, nis: r.participant_nis, grade: r.participant_grade },
                          token: r.token, score: r.score, startTime: parseInt(r.start_time), endTime: parseInt(r.end_time),
