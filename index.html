@@ -381,13 +381,15 @@
              try {
                 const db = await getSupabase();
 
-// Perbaikan: Ambil seluruh data token agar Pengaturan Admin (SYS) terbaca, dan hitung token siswa secara terpisah
+                // PERBAIKAN: Pisahkan query agar pengaturan (SYS_SETTING) tidak ikut terfilter dan terbaca oleh sistem
                 const [qRes, tRes, countRes] = await Promise.all([
                     db.from('questions').select('*', { count: 'exact' }),
                     db.from('tokens').select('*').order('generatedAt', { ascending: false }),
-                    db.from('tokens').select('code', { count: 'exact', head: true }).not('code', 'like', 'SYS_%').eq('status', 'AVAILABLE')
+                    db.from('tokens').select('code', { count: 'exact', head: true })
+                      .not('code', 'like', 'SYS_%')
+                      .eq('status', 'AVAILABLE')
                 ]);
-              
+                
                 if(qRes.error) throw qRes.error;
                 if(tRes.error) throw tRes.error;
                 
@@ -397,7 +399,8 @@
                 }
                 if(tRes.data) {
                     setTokens(tRes.data);
-                    setTotalAngkaToken(countRes.count || 0); // Total akurat token menembus limit 999
+                    // Menghitung angka partisipan khusus siswa
+                    setTotalAngkaToken(countRes.count || 0);
                     
                     const fToken = tRes.data.find(t => t.code === 'SYS_SETTING_FOLDER');
                     if (fToken) setActiveFolder(fToken.status);
