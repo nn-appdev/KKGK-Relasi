@@ -1500,16 +1500,29 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              };
 
              const handleDeleteSelected = async () => {
-                 if (selectedResults.length === 0) return;
-                 if (!confirm(`Hapus permanen ${selectedResults.length} data ujian terpilih?`)) return;
-                 setIsDeleting(true);
-                 try {
-                     const db = await getSupabase();
-                     const { error } = await db.from('results').delete().in('id', selectedResults);
-                     if (error) throw error;
-                     await fetchSupabaseData(); setSelectedResults([]); alert("Data terpilih berhasil dihapus.");
-                 } catch (err) { alert("Gagal hapus masal: " + err.message); } finally { setIsDeleting(false); }
-             };
+                if (selectedResults.length === 0) return;
+                if (!confirm(`Hapus permanen ${selectedResults.length} data ujian terpilih?`)) return;
+                setIsDeleting(true);
+                try {
+                    const db = await getSupabase();
+                    
+                    // TEKNIK BATCHING: Potong data maksimal 500 ID per eksekusi agar tidak ditolak server
+                    const batchSize = 500;
+                    for (let i = 0; i < selectedResults.length; i += batchSize) {
+                        const chunk = selectedResults.slice(i, i + batchSize);
+                        const { error } = await db.from('results').delete().in('id', chunk);
+                        if (error) throw error;
+                    }
+                    
+                    await fetchSupabaseData(); 
+                    setSelectedResults([]); 
+                    alert(`Sukses: ${selectedResults.length} data berhasil dihapus secara bertahap tanpa membebani server.`);
+                } catch (err) { 
+                    alert("Gagal hapus masal: " + err.message); 
+                } finally { 
+                    setIsDeleting(false); 
+                }
+            };
 
              const downloadExcel = () => {
                  if (processedResults.length === 0) return alert("Tidak ada data untuk diunduh.");
