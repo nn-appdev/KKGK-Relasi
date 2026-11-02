@@ -2635,20 +2635,20 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                     tableHeaders += `<th title="${tooltip}" style="width: 25px;">${i + 1}</th>`;
                 });
                 tableHeaders += `<th style="width: 50px;">Skor</th><th style="width: 50px;">Nilai</th>`;
-
+            
                 let tableRows = '';
                 matrixResults.forEach((r, i) => {
                     const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
                     const earned = details.reduce((sum, d) => sum + (d.pointsEarned || 0), 0);
-
+            
                     let rowHtml = `<tr>
                         <td style="text-align:center;">${i + 1}</td>
                         <td style="text-transform: uppercase; font-weight: bold; font-size: 10px;">${r.participant?.name || '-'}</td>`;
-
+            
                     filteredQuestions.forEach(q => {
                         const d = details.find(x => x.qId === q.id);
                         let status = '-'; let bgColor = '#f8fafc'; let color = '#94a3b8';
-
+            
                         if (d) {
                             if (d.isEmpty) { status = 'K'; bgColor = '#fef3c7'; color = '#d97706'; } 
                             else if (d.isCorrect) { status = 'B'; bgColor = '#d1fae5'; color = '#059669'; } 
@@ -2657,13 +2657,13 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                         }
                         rowHtml += `<td style="text-align:center; background-color:${bgColor}; color:${color}; font-weight:bold;">${status}</td>`;
                     });
-
+            
                     rowHtml += `<td style="text-align:center; font-weight:bold; background-color: #f1f5f9;">${earned}</td>
                                 <td style="text-align:center; font-weight:900; color:#059669; background-color: #ecfdf5;">${r.score}</td>
                               </tr>`;
                     tableRows += rowHtml;
                 });
-
+            
                 const htmlContent = `
                     <!DOCTYPE html>
                     <html>
@@ -2699,7 +2699,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                             <span><span style="color:#2563eb">P:</span> Parsial (Benar Sebagian)</span>
                             <span><span style="color:#d97706">K:</span> Kosong</span>
                         </div>
-                        <script>window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); }<${'/'}script>
+                        <script>window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); }</script>
                     </body>
                     </html>
                 `;
