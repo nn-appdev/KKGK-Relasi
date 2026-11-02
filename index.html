@@ -2542,94 +2542,172 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
             };
 
             const downloadAnalisisPDF = () => {
-    if (analysisData.length === 0) return alert("Tidak ada data analisis untuk dicetak.");
-    
-    const printWindow = window.open('', '_blank');
-    const dateStr = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
-    
-    let tableRows = '';
-    analysisData.forEach((d, idx) => {
-        const tempDiv = document.createElement("div"); 
-        tempDiv.innerHTML = d.question || "";
-        let plainText = (tempDiv.textContent || tempDiv.innerText || "").trim();
-        if (plainText.length > 80) plainText = plainText.substring(0, 80) + "...";
-        
-        let diffColor = '#64748b'; 
-        let diffBg = 'transparent';
-        if (d.difficulty.includes('Sangat Mudah')) { diffColor = '#065f46'; diffBg = '#d1fae5'; }
-        else if (d.difficulty.includes('Mudah')) { diffColor = '#047857'; diffBg = '#ecfdf5'; }
-        else if (d.difficulty === 'Sedang') { diffColor = '#1d4ed8'; diffBg = '#dbeafe'; }
-        else if (d.difficulty.includes('Sangat Sulit')) { diffColor = '#9f1239'; diffBg = '#ffe4e6'; }
-        else if (d.difficulty.includes('Sulit')) { diffColor = '#be123c'; diffBg = '#fef2f2'; }
+                if (analysisData.length === 0) return alert("Tidak ada data analisis untuk dicetak.");
+                
+                const printWindow = window.open('', '_blank');
+                const dateStr = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+                
+                let tableRows = '';
+                analysisData.forEach((d, idx) => {
+                    const tempDiv = document.createElement("div"); 
+                    tempDiv.innerHTML = d.question || "";
+                    let plainText = (tempDiv.textContent || tempDiv.innerText || "").trim();
+                    if (plainText.length > 80) plainText = plainText.substring(0, 80) + "...";
+                    
+                    let diffColor = '#64748b'; 
+                    let diffBg = 'transparent';
+                    if (d.difficulty.includes('Sangat Mudah')) { diffColor = '#065f46'; diffBg = '#d1fae5'; }
+                    else if (d.difficulty.includes('Mudah')) { diffColor = '#047857'; diffBg = '#ecfdf5'; }
+                    else if (d.difficulty === 'Sedang') { diffColor = '#1d4ed8'; diffBg = '#dbeafe'; }
+                    else if (d.difficulty.includes('Sangat Sulit')) { diffColor = '#9f1239'; diffBg = '#ffe4e6'; }
+                    else if (d.difficulty.includes('Sulit')) { diffColor = '#be123c'; diffBg = '#fef2f2'; }
+            
+                    tableRows += `
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="text-align:center; padding: 8px;">${idx + 1}</td>
+                            <td style="padding: 8px;"><strong>${d.folder || 'Utama'}</strong><br/><span style="font-size:8px; color:#3b82f6; text-transform:uppercase; font-weight:bold;">${d.type}</span></td>
+                            <td style="padding: 8px; line-height: 1.4;">${plainText}</td>
+                            <td style="text-align:center; padding: 8px; color:#059669; font-weight:bold;">${d.correct}</td>
+                            <td style="text-align:center; padding: 8px; color:#e11d48; font-weight:bold;">${d.wrong}</td>
+                            <td style="text-align:center; padding: 8px; color:#94a3b8; font-weight:bold;">${d.empty}</td>
+                            <td style="text-align:center; padding: 8px; font-weight:900; color:#0f172a;">${d.percentage}%</td>
+                            <td style="text-align:center; padding: 8px;"><span style="background-color:${diffBg}; color:${diffColor}; padding:3px 6px; border-radius:4px; font-weight:bold; font-size:8px; text-transform:uppercase;">${d.difficulty}</span></td>
+                        </tr>
+                    `;
+                });
+            
+                const htmlContent = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Analisis_Butir_Soal_${filterFolder.replace(/\s+/g, '_')}</title>
+                        <style>
+                            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #333; padding: 20px; }
+                            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1e293b; padding-bottom: 15px; }
+                            .header h2 { margin: 0 0 5px 0; color: #0f172a; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                            th, td { border: 1px solid #cbd5e1; }
+                            th { background-color: #f8fafc; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 9px; color: #475569; padding: 10px 8px; }
+                            @media print {
+                                @page { size: portrait; margin: 1cm; }
+                                body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <h2>Laporan Analisis Butir Soal</h2>
+                            <p style="margin:0; font-size:11px; color:#64748b;">Kategori / Mapel: <strong style="color:#0f172a;">${filterFolder}</strong> &nbsp;|&nbsp; Unduh: ${dateStr}</p>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width:5%;">No</th>
+                                    <th style="width:15%;">Kategori/Tipe</th>
+                                    <th style="width:40%; text-align:left;">Pertanyaan (Cuplikan)</th>
+                                    <th style="width:8%;">Benar</th>
+                                    <th style="width:8%;">Salah</th>
+                                    <th style="width:8%;">Kosong</th>
+                                    <th style="width:8%;">% Benar</th>
+                                    <th style="width:8%;">Kesulitan</th>
+                                </tr>
+                            </thead>
+                            <tbody>${tableRows}</tbody>
+                        </table>
+                    </body>
+                    </html>
+                `;
+                printWindow.document.open();
+                printWindow.document.write(htmlContent);
+                printWindow.document.close();
+                // Eksekusi cetak via DOM (Tanpa tag script di HTML)
+                printWindow.onload = () => { setTimeout(() => { printWindow.print(); printWindow.close(); }, 500); };
+            };
 
-        tableRows += `
-            <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="text-align:center; padding: 8px;">${idx + 1}</td>
-                <td style="padding: 8px;"><strong>${d.folder || 'Utama'}</strong><br/><span style="font-size:8px; color:#3b82f6; text-transform:uppercase; font-weight:bold;">${d.type}</span></td>
-                <td style="padding: 8px; line-height: 1.4;">${plainText}</td>
-                <td style="text-align:center; padding: 8px; color:#059669; font-weight:bold;">${d.correct}</td>
-                <td style="text-align:center; padding: 8px; color:#e11d48; font-weight:bold;">${d.wrong}</td>
-                <td style="text-align:center; padding: 8px; color:#94a3b8; font-weight:bold;">${d.empty}</td>
-                <td style="text-align:center; padding: 8px; font-weight:900; color:#0f172a;">${d.percentage}%</td>
-                <td style="text-align:center; padding: 8px;"><span style="background-color:${diffBg}; color:${diffColor}; padding:3px 6px; border-radius:4px; font-weight:bold; font-size:8px; text-transform:uppercase;">${d.difficulty}</span></td>
-            </tr>
-        `;
-    });
-
-    const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Analisis_Butir_Soal_${filterFolder.replace(/\s+/g, '_')}</title>
-            <style>
-                body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #333; padding: 20px; }
-                .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1e293b; padding-bottom: 15px; }
-                .header h2 { margin: 0 0 5px 0; color: #0f172a; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
-                table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-                th, td { border: 1px solid #cbd5e1; }
-                th { background-color: #f8fafc; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 9px; color: #475569; padding: 10px 8px; }
-                @media print {
-                    @page { size: portrait; margin: 1cm; }
-                    body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h2>Laporan Analisis Butir Soal</h2>
-                <p style="margin:0; font-size:11px; color:#64748b;">Kategori / Mapel: <strong style="color:#0f172a;">${filterFolder}</strong> &nbsp;|&nbsp; Unduh: ${dateStr}</p>
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width:5%;">No</th>
-                        <th style="width:15%;">Kategori/Tipe</th>
-                        <th style="width:40%; text-align:left;">Pertanyaan (Cuplikan)</th>
-                        <th style="width:8%;">Benar</th>
-                        <th style="width:8%;">Salah</th>
-                        <th style="width:8%;">Kosong</th>
-                        <th style="width:8%;">% Benar</th>
-                        <th style="width:8%;">Kesulitan</th>
-                    </tr>
-                </thead>
-                <tbody>${tableRows}</tbody>
-            </table>
-        </body>
-        </html>
-    `;
-    
-    printWindow.document.open();
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    
-    // Inject logic pencetakan melalui instansiasi DOM untuk mengecoh Babel
-    printWindow.onload = () => {
-        printWindow.setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 500);
-    };
-};
+            const downloadMatrixPDF = () => {
+                if (matrixResults.length === 0) return alert("Tidak ada data untuk dicetak.");
+                
+                const printWindow = window.open('', '_blank');
+                
+                let tableHeaders = `<th style="width: 30px;">No</th><th style="text-align: left;">Nama Peserta</th>`;
+                filteredQuestions.forEach((q, i) => {
+                    const tooltip = (q.question || '').replace(/<[^>]+>/g, '').replace(/"/g, "'");
+                    tableHeaders += `<th title="${tooltip}" style="width: 25px;">${i + 1}</th>`;
+                });
+                tableHeaders += `<th style="width: 50px;">Skor</th><th style="width: 50px;">Nilai</th>`;
+            
+                let tableRows = '';
+                matrixResults.forEach((r, i) => {
+                    const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
+                    const earned = details.reduce((sum, d) => sum + (d.pointsEarned || 0), 0);
+            
+                    let rowHtml = `<tr>
+                        <td style="text-align:center;">${i + 1}</td>
+                        <td style="text-transform: uppercase; font-weight: bold; font-size: 10px;">${r.participant?.name || '-'}</td>`;
+            
+                    filteredQuestions.forEach(q => {
+                        const d = details.find(x => x.qId === q.id);
+                        let status = '-'; let bgColor = '#f8fafc'; let color = '#94a3b8';
+            
+                        if (d) {
+                            if (d.isEmpty) { status = 'K'; bgColor = '#fef3c7'; color = '#d97706'; } 
+                            else if (d.isCorrect) { status = 'B'; bgColor = '#d1fae5'; color = '#059669'; } 
+                            else if (d.pointsEarned > 0) { status = 'P'; bgColor = '#dbeafe'; color = '#2563eb'; } 
+                            else { status = 'S'; bgColor = '#ffe4e6'; color = '#e11d48'; } 
+                        }
+                        rowHtml += `<td style="text-align:center; background-color:${bgColor}; color:${color}; font-weight:bold;">${status}</td>`;
+                    });
+            
+                    rowHtml += `<td style="text-align:center; font-weight:bold; background-color: #f1f5f9;">${earned}</td>
+                                <td style="text-align:center; font-weight:900; color:#059669; background-color: #ecfdf5;">${r.score}</td>
+                              </tr>`;
+                    tableRows += rowHtml;
+                });
+            
+                const htmlContent = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Matriks_Analisis_${filterFolder.replace(/\s+/g, '_')}</title>
+                        <style>
+                            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #333; padding: 10px; }
+                            .header { text-align: center; margin-bottom: 20px; }
+                            .header h2 { margin: 0 0 5px 0; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;}
+                            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                            th, td { border: 1px solid #cbd5e1; padding: 4px; }
+                            th { background-color: #f1f5f9; font-weight: bold; text-align: center; font-size: 9px; color: #475569; }
+                            td { font-size: 9px; }
+                            .legend { display: flex; gap: 20px; margin-top: 15px; font-size: 10px; font-weight: bold; justify-content: center; color: #64748b; }
+                            @media print {
+                                @page { size: landscape; margin: 1cm; } 
+                                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <h2>Laporan Matriks Analisis Jawaban Siswa</h2>
+                            <p style="margin:0; font-size:11px; color:#64748b;">Kategori / Mapel: <strong style="color:#0f172a;">${filterFolder}</strong> &nbsp;|&nbsp; Sekolah: <strong style="color:#0f172a;">${filterSchool}</strong></p>
+                        </div>
+                        <table>
+                            <thead><tr>${tableHeaders}</tr></thead>
+                            <tbody>${tableRows}</tbody>
+                        </table>
+                        <div class="legend">
+                            <span><span style="color:#059669">B:</span> Benar</span>
+                            <span><span style="color:#e11d48">S:</span> Salah</span>
+                            <span><span style="color:#2563eb">P:</span> Parsial (Benar Sebagian)</span>
+                            <span><span style="color:#d97706">K:</span> Kosong</span>
+                        </div>
+                    </body>
+                    </html>
+                `;
+                printWindow.document.open();
+                printWindow.document.write(htmlContent);
+                printWindow.document.close();
+                // Eksekusi cetak via DOM (Tanpa tag script di HTML)
+                printWindow.onload = () => { setTimeout(() => { printWindow.print(); printWindow.close(); }, 500); };
+            };
             const downloadMatrixPDF = () => {
                 if (matrixResults.length === 0) return alert("Tidak ada data untuk dicetak.");
                 
