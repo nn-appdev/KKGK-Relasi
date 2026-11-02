@@ -2576,52 +2576,59 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
         `;
     });
 
-    const htmlContent = [
-        "<!DOCTYPE html>",
-        "<html>",
-        "<head>",
-        "    <title>Analisis_Butir_Soal_" + filterFolder.replace(/\s+/g, '_') + "</title>",
-        "    <style>",
-        "        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #333; padding: 20px; }",
-        "        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1e293b; padding-bottom: 15px; }",
-        "        .header h2 { margin: 0 0 5px 0; color: #0f172a; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }",
-        "        table { width: 100%; border-collapse: collapse; margin-top: 15px; }",
-        "        th, td { border: 1px solid #cbd5e1; }",
-        "        th { background-color: #f8fafc; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 9px; color: #475569; padding: 10px 8px; }",
-        "        @media print {",
-        "            @page { size: portrait; margin: 1cm; }",
-        "            body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }",
-        "        }",
-        "    </style>",
-        "</head>",
-        "<body>",
-        "    <div class=\"header\">",
-        "        <h2>Laporan Analisis Butir Soal</h2>",
-        "        <p style=\"margin:0; font-size:11px; color:#64748b;\">Kategori / Mapel: <strong style=\"color:#0f172a;\">" + filterFolder + "</strong> &nbsp;|&nbsp; Unduh: " + dateStr + "</p>",
-        "    </div>",
-        "    <table>",
-        "        <thead>",
-        "            <tr>",
-        "                <th style=\"width:5%;\">No</th>",
-        "                <th style=\"width:15%;\">Kategori/Tipe</th>",
-        "                <th style=\"width:40%; text-align:left;\">Pertanyaan (Cuplikan)</th>",
-        "                <th style=\"width:8%;\">Benar</th>",
-        "                <th style=\"width:8%;\">Salah</th>",
-        "                <th style=\"width:8%;\">Kosong</th>",
-        "                <th style=\"width:8%;\">% Benar</th>",
-        "                <th style=\"width:8%;\">Kesulitan</th>",
-        "            </tr>",
-        "        </thead>",
-        "        <tbody>" + tableRows + "</tbody>",
-        "    </table>",
-        "    <script>window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); }<" + "/script>",
-        "</body>",
-        "</html>"
-    ].join('\n');
-
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Analisis_Butir_Soal_${filterFolder.replace(/\s+/g, '_')}</title>
+            <style>
+                body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #333; padding: 20px; }
+                .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1e293b; padding-bottom: 15px; }
+                .header h2 { margin: 0 0 5px 0; color: #0f172a; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                th, td { border: 1px solid #cbd5e1; }
+                th { background-color: #f8fafc; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 9px; color: #475569; padding: 10px 8px; }
+                @media print {
+                    @page { size: portrait; margin: 1cm; }
+                    body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>Laporan Analisis Butir Soal</h2>
+                <p style="margin:0; font-size:11px; color:#64748b;">Kategori / Mapel: <strong style="color:#0f172a;">${filterFolder}</strong> &nbsp;|&nbsp; Unduh: ${dateStr}</p>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:5%;">No</th>
+                        <th style="width:15%;">Kategori/Tipe</th>
+                        <th style="width:40%; text-align:left;">Pertanyaan (Cuplikan)</th>
+                        <th style="width:8%;">Benar</th>
+                        <th style="width:8%;">Salah</th>
+                        <th style="width:8%;">Kosong</th>
+                        <th style="width:8%;">% Benar</th>
+                        <th style="width:8%;">Kesulitan</th>
+                    </tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+            </table>
+        </body>
+        </html>
+    `;
+    
     printWindow.document.open();
     printWindow.document.write(htmlContent);
     printWindow.document.close();
+    
+    // Inject logic pencetakan melalui instansiasi DOM untuk mengecoh Babel
+    printWindow.onload = () => {
+        printWindow.setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+    };
 };
             const downloadMatrixPDF = () => {
                 if (matrixResults.length === 0) return alert("Tidak ada data untuk dicetak.");
