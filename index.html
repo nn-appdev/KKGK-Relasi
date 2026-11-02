@@ -480,9 +480,10 @@
 
           useEffect(() => { fetchSupabaseData(); }, [isAdminLoggedIn]);
 
-          const activeQuestions = isAdminLoggedIn 
-            ? questions 
-            : questions.filter(q => {
+          // Tambahkan syarat currentRoute.startsWith('/admin')
+        const activeQuestions = (isAdminLoggedIn && currentRoute.startsWith('/admin')) 
+          ? questions 
+          : questions.filter(q => {
                 const pJenis = activeSession?.participant?.jenis_soal;
                 // Logika baru: Prioritaskan folder khusus siswa, jika tidak ada, gunakan folder global yang diterbitkan Admin
                 const targetFolder = (pJenis && pJenis !== 'Utama') 
@@ -530,6 +531,7 @@
                     }
                 }
 
+                setIsAdminLoggedIn(false); 
                 setActiveSession({ 
                     token: tokenObj.code, 
                     participant: { name: tokenObj.participant_name || 'Peserta', school: tokenObj.participant_school || organizerName, nis: '', grade: '6' }, 
