@@ -2654,8 +2654,11 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                 printWindow.document.open();
                 printWindow.document.write(htmlContent);
                 printWindow.document.close();
-                // Eksekusi cetak via DOM (Tanpa tag script di HTML)
-                printWindow.onload = () => { setTimeout(() => { printWindow.print(); printWindow.close(); }, 500); };
+                
+                setTimeout(() => { 
+                    printWindow.print(); 
+                    printWindow.close(); 
+                }, 500);
             };
 
             const downloadMatrixPDF = () => {
@@ -2739,8 +2742,11 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                 printWindow.document.open();
                 printWindow.document.write(htmlContent);
                 printWindow.document.close();
-                // Eksekusi cetak via DOM (Tanpa tag script di HTML)
-                printWindow.onload = () => { setTimeout(() => { printWindow.print(); printWindow.close(); }, 500); };
+                
+                setTimeout(() => { 
+                    printWindow.print(); 
+                    printWindow.close(); 
+                }, 500);
             };
             return (
               <AdminLayout title="Analisis Data Ujian">
