@@ -1584,7 +1584,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                  let rowsHTML = '';
                  const studentDetails = Array.isArray(selectedAnalysis.detail?.detailedResults) ? selectedAnalysis.detail.detailedResults.filter(x => x.qId !== 'SYS_CHEATS') : [];
                  
-                 // FUNGSI PEMBERSIH HTML: Menghapus tag HTML dan KaTeX dari tampilan admin agar aman dicetak
+                 // PEMBERSIH TEKS: Membuang sisa tag HTML dan KaTeX
                  const cleanText = (htmlStr) => {
                      if (!htmlStr) return '';
                      const tempDiv = document.createElement("div");
@@ -1659,7 +1659,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                      `;
                  });
 
-                 // HTML POLOS, TANPA KATEX, TANPA SCRIPT
+                 // KONTEN PASIF: 100% murni HTML/CSS, nol tag eksekusi.
                  const htmlContent = `
                     <!DOCTYPE html>
                     <html>
@@ -1702,7 +1702,12 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                  printWindow.document.open();
                  printWindow.document.write(htmlContent);
                  printWindow.document.close();
-                 setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+                 
+                 // EKSEKUSI DARI LUAR: Browser tidak akan tersedak
+                 setTimeout(() => { 
+                     printWindow.print(); 
+                     printWindow.close(); 
+                 }, 500);
              };
 
              return (
@@ -2574,6 +2579,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                 analysisData.forEach((d, idx) => {
                     const tempDiv = document.createElement("div"); 
                     tempDiv.innerHTML = d.question || "";
+                    // Buang KaTeX agar bersih saat dicetak admin
                     let plainText = (tempDiv.textContent || tempDiv.innerText || "").replace(/\$\$/g, '').replace(/\\\[/g, '').replace(/\\\]/g, '').replace(/\\\(/g, '').replace(/\\\)/g, '').trim();
                     if (plainText.length > 80) plainText = plainText.substring(0, 80) + "...";
                     
@@ -2643,6 +2649,8 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                 printWindow.document.open();
                 printWindow.document.write(htmlContent);
                 printWindow.document.close();
+                
+                // EKSEKUSI DARI LUAR
                 setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
             };
 
@@ -2728,95 +2736,9 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                 printWindow.document.open();
                 printWindow.document.write(htmlContent);
                 printWindow.document.close();
-                setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
-            };
-            const downloadMatrixPDF = () => {
-                if (matrixResults.length === 0) return alert("Tidak ada data untuk dicetak.");
                 
-                const printWindow = window.open('', '_blank');
-                if (!printWindow) { alert("Pop-up diblokir browser! Izinkan pop-up (Always allow) di kanan atas browser Anda."); return; }
-
-                let tableHeaders = `<th style="width: 30px;">No</th><th style="text-align: left;">Nama Peserta</th>`;
-                filteredQuestions.forEach((q, i) => {
-                    const tooltip = (q.question || '').replace(/<[^>]+>/g, '').replace(/"/g, "'");
-                    tableHeaders += `<th title="${tooltip}" style="width: 25px;">${i + 1}</th>`;
-                });
-                tableHeaders += `<th style="width: 50px;">Skor</th><th style="width: 50px;">Nilai</th>`;
-            
-                let tableRows = '';
-                matrixResults.forEach((r, i) => {
-                    const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
-                    const earned = details.reduce((sum, d) => sum + (d.pointsEarned || 0), 0);
-            
-                    let rowHtml = `<tr>
-                        <td style="text-align:center;">${i + 1}</td>
-                        <td style="text-transform: uppercase; font-weight: bold; font-size: 10px;">${r.participant?.name || '-'}</td>`;
-            
-                    filteredQuestions.forEach(q => {
-                        const d = details.find(x => x.qId === q.id);
-                        let status = '-'; let bgColor = '#f8fafc'; let color = '#94a3b8';
-            
-                        if (d) {
-                            if (d.isEmpty) { status = 'K'; bgColor = '#fef3c7'; color = '#d97706'; } 
-                            else if (d.isCorrect) { status = 'B'; bgColor = '#d1fae5'; color = '#059669'; } 
-                            else if (d.pointsEarned > 0) { status = 'P'; bgColor = '#dbeafe'; color = '#2563eb'; } 
-                            else { status = 'S'; bgColor = '#ffe4e6'; color = '#e11d48'; } 
-                        }
-                        rowHtml += `<td style="text-align:center; background-color:${bgColor}; color:${color}; font-weight:bold;">${status}</td>`;
-                    });
-            
-                    rowHtml += `<td style="text-align:center; font-weight:bold; background-color: #f1f5f9;">${earned}</td>
-                                <td style="text-align:center; font-weight:900; color:#059669; background-color: #ecfdf5;">${r.score}</td>
-                              </tr>`;
-                    tableRows += rowHtml;
-                });
-            
-                const htmlContent = `
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <title>Matriks_Analisis_${filterFolder.replace(/\s+/g, '_')}</title>
-                        <style>
-                            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #333; padding: 10px; }
-                            .header { text-align: center; margin-bottom: 20px; }
-                            .header h2 { margin: 0 0 5px 0; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;}
-                            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                            th, td { border: 1px solid #cbd5e1; padding: 4px; }
-                            th { background-color: #f1f5f9; font-weight: bold; text-align: center; font-size: 9px; color: #475569; }
-                            td { font-size: 9px; }
-                            .legend { display: flex; gap: 20px; margin-top: 15px; font-size: 10px; font-weight: bold; justify-content: center; color: #64748b; }
-                            @media print {
-                                @page { size: landscape; margin: 1cm; } 
-                                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="header">
-                            <h2>Laporan Matriks Analisis Jawaban Siswa</h2>
-                            <p style="margin:0; font-size:11px; color:#64748b;">Kategori / Mapel: <strong style="color:#0f172a;">${filterFolder}</strong> &nbsp;|&nbsp; Sekolah: <strong style="color:#0f172a;">${filterSchool}</strong></p>
-                        </div>
-                        <table>
-                            <thead><tr>${tableHeaders}</tr></thead>
-                            <tbody>${tableRows}</tbody>
-                        </table>
-                        <div class="legend">
-                            <span><span style="color:#059669">B:</span> Benar</span>
-                            <span><span style="color:#e11d48">S:</span> Salah</span>
-                            <span><span style="color:#2563eb">P:</span> Parsial (Benar Sebagian)</span>
-                            <span><span style="color:#d97706">K:</span> Kosong</span>
-                        </div>
-                        ${"<scr" + "ipt>"}
-                            window.onload = function() { 
-                                setTimeout(function() { window.print(); window.close(); }, 500); 
-                            }
-                        ${"</scr" + "ipt>"}
-                    </body>
-                    </html>
-                `;
-                printWindow.document.open();
-                printWindow.document.write(htmlContent);
-                printWindow.document.close();
+                // EKSEKUSI DARI LUAR
+                setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
             };
 
              return (
