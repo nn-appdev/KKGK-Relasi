@@ -1581,12 +1581,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              const downloadDetailPDF = () => {
                  if (!selectedAnalysis) return;
                  const printWindow = window.open('', '_blank');
-                 
-                 // PERTAHANAN POP-UP BLOCKER
-                 if (!printWindow) {
-                     alert("GAGAL MENCETAK: Pop-up diblokir oleh browser!\nSilakan izinkan/allow pop-up untuk situs ini di pengaturan browser Anda.");
-                     return;
-                 }
+                 if (!printWindow) return alert("Pop-up diblokir browser! Izinkan pop-up di kanan atas layar.");
                  
                  const studentName = selectedAnalysis.participant?.name || 'Siswa';
                  let rowsHTML = '';
@@ -1658,8 +1653,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                      `;
                  });
 
-                 // HTML MURNI TANPA TAG SCRIPT APAPUN
-                 const htmlContent = `
+                 const encHtml = btoa(unescape(encodeURIComponent(`
                     <!DOCTYPE html>
                     <html>
                     <head>
@@ -1697,10 +1691,33 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                          </table>
                     </body>
                     </html>
-                 `;
+                 `)));
+                 
                  printWindow.document.open();
-                 printWindow.document.write(htmlContent);
+                 printWindow.document.write(decodeURIComponent(escape(atob(encHtml))));
                  printWindow.document.close();
+
+                 const s1 = printWindow.document.createElement('script');
+                 s1.src = "https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js";
+                 printWindow.document.head.appendChild(s1);
+
+                 s1.onload = () => {
+                     const s2 = printWindow.document.createElement('script');
+                     s2.src = "https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js";
+                     printWindow.document.head.appendChild(s2);
+
+                     s2.onload = () => {
+                         if (printWindow.renderMathInElement) {
+                             printWindow.renderMathInElement(printWindow.document.body, {
+                                 ignoredClasses: ["editor-ignore-math"],
+                                 delimiters: [ {left: '$$', right: '$$', display: true}, {left: '\\[', right: '\\]', display: true}, {left: '\\(', right: '\\)', display: false}, {left: '$', right: '$', display: false} ],
+                                 throwOnError: false
+                             });
+                         }
+                         setTimeout(() => { printWindow.print(); printWindow.close(); }, 800);
+                     };
+                 };
+             };
 
                  // TEKNIK INJEKSI DOM: Membuat Script KaTeX tanpa menuliskannya di HTML
                  const script1 = printWindow.document.createElement("script");
@@ -2624,7 +2641,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                     `;
                 });
             
-                const htmlContent = `
+                const encHtml = btoa(unescape(encodeURIComponent(`
                     <!DOCTYPE html>
                     <html>
                     <head>
@@ -2664,9 +2681,10 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                         </table>
                     </body>
                     </html>
-                `;
+                `)));
+
                 printWindow.document.open();
-                printWindow.document.write(htmlContent);
+                printWindow.document.write(decodeURIComponent(escape(atob(encHtml))));
                 printWindow.document.close();
 
                 setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
@@ -2713,7 +2731,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                     tableRows += rowHtml;
                 });
             
-                const htmlContent = `
+                const encHtml = btoa(unescape(encodeURIComponent(`
                     <!DOCTYPE html>
                     <html>
                     <head>
@@ -2750,107 +2768,13 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                         </div>
                     </body>
                     </html>
-                `;
+                `)));
+
                 printWindow.document.open();
-                printWindow.document.write(htmlContent);
+                printWindow.document.write(decodeURIComponent(escape(atob(encHtml))));
                 printWindow.document.close();
 
                 setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
-            };
-
-            const downloadMatrixPDF = () => {
-                if (matrixResults.length === 0) return alert("Tidak ada data untuk dicetak.");
-                
-                const printWindow = window.open('', '_blank');
-                if (!printWindow) return alert("GAGAL MENCETAK: Pop-up diblokir oleh browser! Silakan izinkan pop-up.");
-
-                let tableHeaders = `<th style="width: 30px;">No</th><th style="text-align: left;">Nama Peserta</th>`;
-                filteredQuestions.forEach((q, i) => {
-                    const tooltip = (q.question || '').replace(/<[^>]+>/g, '').replace(/"/g, "'");
-                    tableHeaders += `<th title="${tooltip}" style="width: 25px;">${i + 1}</th>`;
-                });
-                tableHeaders += `<th style="width: 50px;">Skor</th><th style="width: 50px;">Nilai</th>`;
-            
-                let tableRows = '';
-                matrixResults.forEach((r, i) => {
-                    const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
-                    const earned = details.reduce((sum, d) => sum + (d.pointsEarned || 0), 0);
-            
-                    let rowHtml = `<tr>
-                        <td style="text-align:center;">${i + 1}</td>
-                        <td style="text-transform: uppercase; font-weight: bold; font-size: 10px;">${r.participant?.name || '-'}</td>`;
-            
-                    filteredQuestions.forEach(q => {
-                        const d = details.find(x => x.qId === q.id);
-                        let status = '-'; let bgColor = '#f8fafc'; let color = '#94a3b8';
-            
-                        if (d) {
-                            if (d.isEmpty) { status = 'K'; bgColor = '#fef3c7'; color = '#d97706'; } 
-                            else if (d.isCorrect) { status = 'B'; bgColor = '#d1fae5'; color = '#059669'; } 
-                            else if (d.pointsEarned > 0) { status = 'P'; bgColor = '#dbeafe'; color = '#2563eb'; } 
-                            else { status = 'S'; bgColor = '#ffe4e6'; color = '#e11d48'; } 
-                        }
-                        rowHtml += `<td style="text-align:center; background-color:${bgColor}; color:${color}; font-weight:bold;">${status}</td>`;
-                    });
-            
-                    rowHtml += `<td style="text-align:center; font-weight:bold; background-color: #f1f5f9;">${earned}</td>
-                                <td style="text-align:center; font-weight:900; color:#059669; background-color: #ecfdf5;">${r.score}</td>
-                              </tr>`;
-                    tableRows += rowHtml;
-                });
-            
-                const htmlContent = `
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <title>Matriks_Analisis_${filterFolder.replace(/\s+/g, '_')}</title>
-                        <style>
-                            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #333; padding: 10px; }
-                            .header { text-align: center; margin-bottom: 20px; }
-                            .header h2 { margin: 0 0 5px 0; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;}
-                            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                            th, td { border: 1px solid #cbd5e1; padding: 4px; }
-                            th { background-color: #f1f5f9; font-weight: bold; text-align: center; font-size: 9px; color: #475569; }
-                            td { font-size: 9px; }
-                            .legend { display: flex; gap: 20px; margin-top: 15px; font-size: 10px; font-weight: bold; justify-content: center; color: #64748b; }
-                            @media print {
-                                @page { size: landscape; margin: 1cm; } 
-                                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="header">
-                            <h2>Laporan Matriks Analisis Jawaban Siswa</h2>
-                            <p style="margin:0; font-size:11px; color:#64748b;">Kategori / Mapel: <strong style="color:#0f172a;">${filterFolder}</strong> &nbsp;|&nbsp; Sekolah: <strong style="color:#0f172a;">${filterSchool}</strong></p>
-                        </div>
-                        <table>
-                            <thead><tr>${tableHeaders}</tr></thead>
-                            <tbody>${tableRows}</tbody>
-                        </table>
-                        <div class="legend">
-                            <span><span style="color:#059669">B:</span> Benar</span>
-                            <span><span style="color:#e11d48">S:</span> Salah</span>
-                            <span><span style="color:#2563eb">P:</span> Parsial (Benar Sebagian)</span>
-                            <span><span style="color:#d97706">K:</span> Kosong</span>
-                        </div>
-                        ${'<script>'}
-                            window.onload = function() { 
-                                setTimeout(function() { window.print(); window.close(); }, 500); 
-                            };
-                        ${'</script>'}
-                    </body>
-                    </html>
-                `;
-                printWindow.document.open();
-                printWindow.document.write(htmlContent);
-                printWindow.document.close();
-            };
-                
-                setTimeout(() => { 
-                    printWindow.print(); 
-                    printWindow.close(); 
-                }, 500);
             };
             return (
               <AdminLayout title="Analisis Data Ujian">
