@@ -929,6 +929,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              }).length;
 
              const handleFinalSubmit = async () => {
+               if (isSubmitting) return; 
                setIsSubmitting(true);
                const result = calculateScore(activeSession.answers, examQuestions);
                const finalDetailedResults = [...result.detailedResults, { qId: 'SYS_CHEATS', cheatCount: activeSession.cheatWarnings || 0 }];
@@ -940,6 +941,15 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                };
                try {
                  const db = await getSupabase();
+                 
+                 const { data: existingData } = await db.from('results').select('id').eq('token', activeSession.token).maybeSingle();
+                 if (existingData) {
+                     alert("Sistem mendeteksi jawaban Anda sudah terkirim sebelumnya.");
+                     setActiveSession({ ...activeSession, status: 'SUBMITTED', score: result.finalScore });
+                     navigate('/submitted');
+                     return;
+                 }
+
                  await db.from('results').insert([payload]);
                  setActiveSession({ ...activeSession, status: 'SUBMITTED', score: result.finalScore });
                  navigate('/submitted');
@@ -1146,6 +1156,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              
              const [selectedTokens, setSelectedTokens] = useState([]);
              const [downloadFilter, setDownloadFilter] = useState('Semua');
+             const [searchQuery, setSearchQuery] = useState(''); // BARIS BARU
              const [editFilter, setEditFilter] = useState('Semua');
              const [sortOrder, setSortOrder] = useState('DEFAULT');
              const [selectedFile, setSelectedFile] = useState(null);
@@ -1154,9 +1165,13 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              const uniqueClasses = [...new Set(actualTokens.map(t => t.participant_school).filter(Boolean))];
              const uniqueEditClasses = [...new Set(massEditTokens.map(t => t.participant_school).filter(Boolean))];
 
-             let displayedTokens = downloadFilter === 'Semua' ? [...actualTokens] : actualTokens.filter(t => t.participant_school === downloadFilter);
-             if (sortOrder === 'NAME_ASC') displayedTokens.sort((a,b) => (a.participant_name || '').localeCompare(b.participant_name || ''));
-             else if (sortOrder === 'NAME_DESC') displayedTokens.sort((a,b) => (b.participant_name || '').localeCompare(a.participant_name || ''));
+             // UBAH BARIS INI
+             let displayedTokens = actualTokens.filter(t => {
+                 const matchSchool = downloadFilter === 'Semua' || t.participant_school === downloadFilter;
+                 const matchSearch = t.participant_name?.toLowerCase().includes(searchQuery.toLowerCase()) || t.code?.toLowerCase().includes(searchQuery.toLowerCase());
+                 return matchSchool && matchSearch;
+             });
+             // Logika sorting di bawahnya biarkan sama
 
              let displayedMassEditTokens = editFilter === 'Semua' ? [...massEditTokens] : massEditTokens.filter(t => t.participant_school === editFilter);
              if (sortOrder === 'NAME_ASC') displayedMassEditTokens.sort((a,b) => (a.participant_name || '').localeCompare(b.participant_name || ''));
@@ -1340,6 +1355,25 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                             </button>
                             
                             <div className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 ml-auto">
+                                <div className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 ml-auto">
+    
+                                {/* MULAI DARI SINI: PASTE KODE PENCARIAN INI */}
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                                        <i className="fas fa-search text-slate-400 text-xs"></i>
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Cari Nama / Token..." 
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="pl-8 pr-3 py-2.5 bg-white border border-slate-300 text-sm font-medium rounded-lg outline-none focus:border-blue-500 w-48 transition-all"
+                                    />
+                                </div>
+                                {/* BATAS AKHIR PASTE */}
+                            
+                                {/* Baris 1348 Anda yang lama (select sortOrder) biarkan berlanjut di sini */}
+                                <select value={sortOrder} onChange={e=>setSortOrder(e.target.value)} className="bg-white border border-slate-300 text-sm font-medium...
                                 <select value={sortOrder} onChange={e=>setSortOrder(e.target.value)} className="bg-white border border-slate-300 text-sm font-medium rounded-lg px-2 py-2.5 outline-none focus:border-blue-500 cursor-pointer">
                                     <option value="DEFAULT">Urutan Acak</option><option value="NAME_ASC">Nama A-Z</option><option value="NAME_DESC">Nama Z-A</option>
                                 </select>
@@ -1474,9 +1508,9 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
 
              let processedResults = results.filter(r => {
                  const matchSchool = filterSchool === 'Semua' || r.participant?.school === filterSchool;
-                 const matchFolder = filterFolder === 'Semua' || getResultFolder(r) === filterFolder;
                  const matchDate = filterDate === 'Semua' || new Date(r.startTime).toLocaleDateString('id-ID') === filterDate;
-                 return matchSchool && matchFolder && matchDate;
+                 const matchFolder = filterFolder === 'Semua' || getResultFolder(r) === filterFolder; // BARIS BARU
+                 return matchSchool && matchDate && matchFolder; // PERBARUI RETURN INI
              });
 
              if (sortOrder === 'NAME_ASC') processedResults.sort((a, b) => (a.participant?.name || '').localeCompare(b.participant?.name || ''));
@@ -2861,11 +2895,21 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
           const AdminReports = () => {
              const [filterSchool, setFilterSchool] = useState('Semua');
              const [filterDate, setFilterDate] = useState('Semua');
+             const [filterFolder, setFilterFolder] = useState('Semua'); // BARIS BARU
              const [sortOrder, setSortOrder] = useState('DEFAULT');
              const [activeTab, setActiveTab] = useState('NILAI');
              
+             // FUNGSI BANTUAN BARU UNTUK MENDAPATKAN NAMA FOLDER DARI RESULT
+             const getResultFolder = (r) => {
+                 const firstQId = r.detail?.detailedResults?.find(x => x.qId !== 'SYS_CHEATS')?.qId;
+                 if (!firstQId) return 'Utama';
+                 const q = questions.find(x => x.id === firstQId);
+                 return q ? (q.folder || 'Utama') : 'Utama';
+             };
+
              const schoolList = ['Semua', ...new Set(results.map(r => r.participant?.school).filter(Boolean))];
              const dateList = ['Semua', ...new Set(results.map(r => new Date(r.startTime).toLocaleDateString('id-ID')))];
+             const folderList = ['Semua', ...new Set(results.map(getResultFolder))]; // BARIS BARU
              
              let processedResults = results.filter(r => {
                  const matchSchool = filterSchool === 'Semua' || r.participant?.school === filterSchool;
@@ -2903,6 +2947,14 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                 {schoolList.map(s => <option key={s} value={s}>{s === 'Semua' ? 'Sekolah: Semua' : s}</option>)}
                              </select>
                              <div className="w-px h-6 bg-slate-300"></div>
+                             
+                             {/* TAMBAHKAN BLOK DROPDOWN FOLDER INI */}
+                             <select value={filterFolder} onChange={e=>setFilterFolder(e.target.value)} className="border-none bg-transparent p-2 text-sm font-semibold outline-none cursor-pointer text-blue-700">
+                                 {folderList.map(f => <option key={f} value={f}>{f === 'Semua' ? 'Kategori: Semua' : f}</option>)}
+                             </select>
+                             <div className="w-px h-6 bg-slate-300"></div>
+                             {/* SELESAI TAMBAHAN */}
+
                              <select value={filterDate} onChange={e=>setFilterDate(e.target.value)} className="border-none bg-transparent p-2 text-sm font-semibold outline-none cursor-pointer text-emerald-700">
                                 {dateList.map(d => <option key={d} value={d}>{d === 'Semua' ? 'Tanggal: Semua' : d}</option>)}
                              </select>
