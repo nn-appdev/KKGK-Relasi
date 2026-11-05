@@ -1509,8 +1509,8 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              let processedResults = results.filter(r => {
                  const matchSchool = filterSchool === 'Semua' || r.participant?.school === filterSchool;
                  const matchDate = filterDate === 'Semua' || new Date(r.startTime).toLocaleDateString('id-ID') === filterDate;
-                 const matchFolder = filterFolder === 'Semua' || getResultFolder(r) === filterFolder; // BARIS BARU
-                 return matchSchool && matchDate && matchFolder; // PERBARUI RETURN INI
+                 const matchFolder = filterFolder === 'Semua' || getResultFolder(r) === filterFolder;
+                 return matchSchool && matchDate && matchFolder;
              });
 
              if (sortOrder === 'NAME_ASC') processedResults.sort((a, b) => (a.participant?.name || '').localeCompare(b.participant?.name || ''));
@@ -1539,23 +1539,17 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                 setIsDeleting(true);
                 try {
                     const db = await getSupabase();
-                    
-                    // TEKNIK BATCHING: Potong data maksimal 500 ID per eksekusi agar tidak ditolak server
                     const batchSize = 500;
                     for (let i = 0; i < selectedResults.length; i += batchSize) {
                         const chunk = selectedResults.slice(i, i + batchSize);
                         const { error } = await db.from('results').delete().in('id', chunk);
                         if (error) throw error;
                     }
-                    
                     await fetchSupabaseData(); 
                     setSelectedResults([]); 
-                    alert(`Sukses: ${selectedResults.length} data berhasil dihapus secara bertahap tanpa membebani server.`);
-                } catch (err) { 
-                    alert("Gagal hapus masal: " + err.message); 
-                } finally { 
-                    setIsDeleting(false); 
-                }
+                    alert(`Sukses: ${selectedResults.length} data berhasil dihapus.`);
+                } catch (err) { alert("Gagal hapus masal: " + err.message); } 
+                finally { setIsDeleting(false); }
             };
 
              const downloadExcel = () => {
@@ -1578,9 +1572,13 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                  link.download = `Hasil_Ujian_${filterSchool}_${filterFolder}_${new Date().getTime()}.csv`; link.click();
              };
 
-             // 1. FUNGSI CETAK DETAIL JAWABAN (Iframe Method)
              const downloadDetailPDF = () => {
                  if (!selectedAnalysis) return;
+                 const printWindow = window.open('', '_blank');
+                 if (!printWindow) {
+                     alert("Pop-up diblokir! Izinkan pop-up di browser Anda.");
+                     return;
+                 }
                  
                  const studentName = selectedAnalysis.participant?.name || 'Siswa';
                  let rowsHTML = '';
@@ -1652,13 +1650,11 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                      `;
                  });
 
-                 // Template HTML Murni
                  const htmlContent = `
                     <!DOCTYPE html>
                     <html>
                     <head>
                         <title>Detail_Jawaban_${studentName.replace(/\s+/g, '_')}</title>
-                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
                         <style>
                             body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #333; padding: 10px; }
                             .header { text-align: center; margin-bottom: 20px; }
@@ -1693,231 +1689,11 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                     </html>
                  `;
                  
-                 // Injeksi Iframe Tersembunyi (Anti Pop-up Blocker)
-                 const iframe = document.createElement('iframe');
-                 iframe.style.display = 'none';
-                 document.body.appendChild(iframe);
-                 
-                 const doc = iframe.contentWindow.document;
-                 doc.open();
-                 doc.write(htmlContent);
-                 doc.close();
-
-                 // Injeksi KaTeX via DOM murni (Anti Tumpahan Kode Babel)
-                 const s1 = doc.createElement('script');
-                 s1.src = "https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js";
-                 doc.head.appendChild(s1);
-
-                 s1.onload = () => {
-                     const s2 = doc.createElement('script');
-                     s2.src = "https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js";
-                     doc.head.appendChild(s2);
-
-                     s2.onload = () => {
-                         if (iframe.contentWindow.renderMathInElement) {
-                             iframe.contentWindow.renderMathInElement(doc.body, {
-                                 ignoredClasses: ["editor-ignore-math"],
-                                 delimiters: [ {left: '$$', right: '$$', display: true}, {left: '\\[', right: '\\]', display: true}, {left: '\\(', right: '\\)', display: false}, {left: '$', right: '$', display: false} ],
-                                 throwOnError: false
-                             });
-                         }
-                         setTimeout(() => { 
-                             iframe.contentWindow.focus();
-                             iframe.contentWindow.print(); 
-                             setTimeout(() => document.body.removeChild(iframe), 1000);
-                         }, 800);
-                     };
-                 };
+                 printWindow.document.open();
+                 printWindow.document.write(htmlContent);
+                 printWindow.document.close();
+                 setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
              };
-
-             // 2. FUNGSI CETAK ANALISIS BUTIR SOAL (Iframe Method)
-             const downloadAnalisisPDF = () => {
-                if (analysisData.length === 0) return alert("Tidak ada data analisis untuk dicetak.");
-                
-                const dateStr = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
-                
-                let tableRows = '';
-                analysisData.forEach((d, idx) => {
-                    const tempDiv = document.createElement("div"); 
-                    tempDiv.innerHTML = d.question || "";
-                    let plainText = (tempDiv.textContent || tempDiv.innerText || "").trim();
-                    if (plainText.length > 80) plainText = plainText.substring(0, 80) + "...";
-                    
-                    let diffColor = '#64748b'; 
-                    let diffBg = 'transparent';
-                    if (d.difficulty.includes('Sangat Mudah')) { diffColor = '#065f46'; diffBg = '#d1fae5'; }
-                    else if (d.difficulty.includes('Mudah')) { diffColor = '#047857'; diffBg = '#ecfdf5'; }
-                    else if (d.difficulty === 'Sedang') { diffColor = '#1d4ed8'; diffBg = '#dbeafe'; }
-                    else if (d.difficulty.includes('Sangat Sulit')) { diffColor = '#9f1239'; diffBg = '#ffe4e6'; }
-                    else if (d.difficulty.includes('Sulit')) { diffColor = '#be123c'; diffBg = '#fef2f2'; }
-            
-                    tableRows += `
-                        <tr style="border-bottom: 1px solid #e2e8f0;">
-                            <td style="text-align:center; padding: 8px;">${idx + 1}</td>
-                            <td style="padding: 8px;"><strong>${d.folder || 'Utama'}</strong><br/><span style="font-size:8px; color:#3b82f6; text-transform:uppercase; font-weight:bold;">${d.type}</span></td>
-                            <td style="padding: 8px; line-height: 1.4;">${plainText}</td>
-                            <td style="text-align:center; padding: 8px; color:#059669; font-weight:bold;">${d.correct}</td>
-                            <td style="text-align:center; padding: 8px; color:#e11d48; font-weight:bold;">${d.wrong}</td>
-                            <td style="text-align:center; padding: 8px; color:#94a3b8; font-weight:bold;">${d.empty}</td>
-                            <td style="text-align:center; padding: 8px; font-weight:900; color:#0f172a;">${d.percentage}%</td>
-                            <td style="text-align:center; padding: 8px;"><span style="background-color:${diffBg}; color:${diffColor}; padding:3px 6px; border-radius:4px; font-weight:bold; font-size:8px; text-transform:uppercase;">${d.difficulty}</span></td>
-                        </tr>
-                    `;
-                });
-            
-                const htmlContent = `
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <title>Analisis_Butir_Soal_${filterFolder.replace(/\s+/g, '_')}</title>
-                        <style>
-                            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #333; padding: 20px; }
-                            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1e293b; padding-bottom: 15px; }
-                            .header h2 { margin: 0 0 5px 0; color: #0f172a; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
-                            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-                            th, td { border: 1px solid #cbd5e1; }
-                            th { background-color: #f8fafc; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 9px; color: #475569; padding: 10px 8px; }
-                            @media print {
-                                @page { size: portrait; margin: 1cm; }
-                                body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="header">
-                            <h2>Laporan Analisis Butir Soal</h2>
-                            <p style="margin:0; font-size:11px; color:#64748b;">Kategori / Mapel: <strong style="color:#0f172a;">${filterFolder}</strong> &nbsp;|&nbsp; Unduh: ${dateStr}</p>
-                        </div>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th style="width:5%;">No</th>
-                                    <th style="width:15%;">Kategori/Tipe</th>
-                                    <th style="width:40%; text-align:left;">Pertanyaan (Cuplikan)</th>
-                                    <th style="width:8%;">Benar</th>
-                                    <th style="width:8%;">Salah</th>
-                                    <th style="width:8%;">Kosong</th>
-                                    <th style="width:8%;">% Benar</th>
-                                    <th style="width:8%;">Kesulitan</th>
-                                </tr>
-                            </thead>
-                            <tbody>${tableRows}</tbody>
-                        </table>
-                    </body>
-                    </html>
-                `;
-
-                // Injeksi Iframe Tersembunyi
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);
-                
-                const doc = iframe.contentWindow.document;
-                doc.open();
-                doc.write(htmlContent);
-                doc.close();
-
-                setTimeout(() => { 
-                    iframe.contentWindow.focus();
-                    iframe.contentWindow.print(); 
-                    setTimeout(() => document.body.removeChild(iframe), 1000);
-                }, 500);
-            };
-
-             // 3. FUNGSI CETAK MATRIKS SISWA (Iframe Method)
-            const downloadMatrixPDF = () => {
-                if (matrixResults.length === 0) return alert("Tidak ada data untuk dicetak.");
-                
-                let tableHeaders = `<th style="width: 30px;">No</th><th style="text-align: left;">Nama Peserta</th>`;
-                filteredQuestions.forEach((q, i) => {
-                    const tooltip = (q.question || '').replace(/<[^>]+>/g, '').replace(/"/g, "'");
-                    tableHeaders += `<th title="${tooltip}" style="width: 25px;">${i + 1}</th>`;
-                });
-                tableHeaders += `<th style="width: 50px;">Skor</th><th style="width: 50px;">Nilai</th>`;
-            
-                let tableRows = '';
-                matrixResults.forEach((r, i) => {
-                    const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
-                    const earned = details.reduce((sum, d) => sum + (d.pointsEarned || 0), 0);
-            
-                    let rowHtml = `<tr>
-                        <td style="text-align:center;">${i + 1}</td>
-                        <td style="text-transform: uppercase; font-weight: bold; font-size: 10px;">${r.participant?.name || '-'}</td>`;
-            
-                    filteredQuestions.forEach(q => {
-                        const d = details.find(x => x.qId === q.id);
-                        let status = '-'; let bgColor = '#f8fafc'; let color = '#94a3b8';
-            
-                        if (d) {
-                            if (d.isEmpty) { status = 'K'; bgColor = '#fef3c7'; color = '#d97706'; } 
-                            else if (d.isCorrect) { status = 'B'; bgColor = '#d1fae5'; color = '#059669'; } 
-                            else if (d.pointsEarned > 0) { status = 'P'; bgColor = '#dbeafe'; color = '#2563eb'; } 
-                            else { status = 'S'; bgColor = '#ffe4e6'; color = '#e11d48'; } 
-                        }
-                        rowHtml += `<td style="text-align:center; background-color:${bgColor}; color:${color}; font-weight:bold;">${status}</td>`;
-                    });
-            
-                    rowHtml += `<td style="text-align:center; font-weight:bold; background-color: #f1f5f9;">${earned}</td>
-                                <td style="text-align:center; font-weight:900; color:#059669; background-color: #ecfdf5;">${r.score}</td>
-                              </tr>`;
-                    tableRows += rowHtml;
-                });
-            
-                const htmlContent = `
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <title>Matriks_Analisis_${filterFolder.replace(/\s+/g, '_')}</title>
-                        <style>
-                            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #333; padding: 10px; }
-                            .header { text-align: center; margin-bottom: 20px; }
-                            .header h2 { margin: 0 0 5px 0; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;}
-                            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                            th, td { border: 1px solid #cbd5e1; padding: 4px; }
-                            th { background-color: #f1f5f9; font-weight: bold; text-align: center; font-size: 9px; color: #475569; }
-                            td { font-size: 9px; }
-                            .legend { display: flex; gap: 20px; margin-top: 15px; font-size: 10px; font-weight: bold; justify-content: center; color: #64748b; }
-                            @media print {
-                                @page { size: landscape; margin: 1cm; } 
-                                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="header">
-                            <h2>Laporan Matriks Analisis Jawaban Siswa</h2>
-                            <p style="margin:0; font-size:11px; color:#64748b;">Kategori / Mapel: <strong style="color:#0f172a;">${filterFolder}</strong> &nbsp;|&nbsp; Sekolah: <strong style="color:#0f172a;">${filterSchool}</strong></p>
-                        </div>
-                        <table>
-                            <thead><tr>${tableHeaders}</tr></thead>
-                            <tbody>${tableRows}</tbody>
-                        </table>
-                        <div class="legend">
-                            <span><span style="color:#059669">B:</span> Benar</span>
-                            <span><span style="color:#e11d48">S:</span> Salah</span>
-                            <span><span style="color:#2563eb">P:</span> Parsial (Benar Sebagian)</span>
-                            <span><span style="color:#d97706">K:</span> Kosong</span>
-                        </div>
-                    </body>
-                    </html>
-                `;
-
-                // Injeksi Iframe Tersembunyi
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);
-                
-                const doc = iframe.contentWindow.document;
-                doc.open();
-                doc.write(htmlContent);
-                doc.close();
-
-                setTimeout(() => { 
-                    iframe.contentWindow.focus();
-                    iframe.contentWindow.print(); 
-                    setTimeout(() => document.body.removeChild(iframe), 1000);
-                }, 500);
-            };
 
              return (
                <AdminLayout title="Manajemen Hasil Ujian">
@@ -2813,7 +2589,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                     `;
                 });
             
-                const encHtml = btoa(unescape(encodeURIComponent(`
+                const htmlContent = `
                     <!DOCTYPE html>
                     <html>
                     <head>
@@ -2853,12 +2629,10 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                         </table>
                     </body>
                     </html>
-                `)));
-
+                `;
                 printWindow.document.open();
-                printWindow.document.write(decodeURIComponent(escape(atob(encHtml))));
+                printWindow.document.write(htmlContent);
                 printWindow.document.close();
-
                 setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
             };
 
@@ -2866,7 +2640,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                 if (matrixResults.length === 0) return alert("Tidak ada data untuk dicetak.");
                 
                 const printWindow = window.open('', '_blank');
-                if (!printWindow) return alert("Pop-up diblokir browser! Izinkan pop-up.");
+                if (!printWindow) return alert("Pop-up diblokir browser! Izinkan pop-up di pojok kanan atas.");
 
                 let tableHeaders = `<th style="width: 30px;">No</th><th style="text-align: left;">Nama Peserta</th>`;
                 filteredQuestions.forEach((q, i) => {
@@ -2903,7 +2677,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                     tableRows += rowHtml;
                 });
             
-                const encHtml = btoa(unescape(encodeURIComponent(`
+                const htmlContent = `
                     <!DOCTYPE html>
                     <html>
                     <head>
@@ -2940,162 +2714,161 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                         </div>
                     </body>
                     </html>
-                `)));
-
+                `;
                 printWindow.document.open();
-                printWindow.document.write(decodeURIComponent(escape(atob(encHtml))));
+                printWindow.document.write(htmlContent);
                 printWindow.document.close();
-
                 setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
             };
-            return (
-              <AdminLayout title="Analisis Data Ujian">
-                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-4">
-                    <div className="bg-white rounded-xl border p-2 flex-1 w-full xl:w-auto shadow-sm flex flex-col xl:flex-row gap-3 items-start xl:items-center">
-                       <div className="flex gap-1 p-1 bg-slate-100 rounded-lg w-full sm:w-auto shrink-0">
-                           <button onClick={() => setActiveTab('BUTIR')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'BUTIR' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Analisis Butir Soal</button>
-                           <button onClick={() => setActiveTab('INDIVIDU')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'INDIVIDU' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Analisis Per Siswa</button>
-                       </div>
-                       
-                       <div className="flex flex-wrap items-center gap-2 xl:border-l xl:pl-3 w-full sm:w-auto bg-slate-50 p-1.5 rounded-lg border border-slate-200 xl:border-none xl:bg-transparent">
-                           <select value={filterSchool} onChange={e=>setFilterSchool(e.target.value)} className="border-none py-1 px-2 text-sm bg-transparent font-semibold focus:ring-0 outline-none cursor-pointer text-slate-700 w-full sm:w-auto">
-                               {schoolList.map(s => <option key={s} value={s}>{s === 'Semua' ? 'Sekolah: Semua' : s}</option>)}
-                           </select>
-                           <div className="w-px h-5 bg-slate-300 hidden sm:block"></div>
-                           <select value={filterDate} onChange={e=>setFilterDate(e.target.value)} className="border-none py-1 px-2 text-sm bg-transparent font-semibold focus:ring-0 outline-none cursor-pointer text-emerald-700 w-full sm:w-auto">
-                               {dateList.map(d => <option key={d} value={d}>{d === 'Semua' ? 'Tanggal: Semua' : d}</option>)}
-                           </select>
-                           <div className="w-px h-5 bg-slate-300 hidden sm:block"></div>
-                           <select value={filterFolder} onChange={e=>setFilterFolder(e.target.value)} className="border-none py-1 px-2 text-sm bg-transparent font-semibold focus:ring-0 outline-none cursor-pointer text-blue-700 w-full sm:w-auto">
-                               {availableFolders.map(f => <option key={f} value={f}>{f === 'Semua' ? 'Kategori: Semua' : f}</option>)}
-                           </select>
-                       </div>
-                    </div>
 
-                    <div className="flex flex-wrap gap-2 w-full xl:w-auto">
-                        {activeTab === 'INDIVIDU' && (
-                            <>
-                                <select value={sortOrder} onChange={e=>setSortOrder(e.target.value)} className="flex-1 sm:flex-none border border-slate-300 rounded-xl p-2.5 text-sm bg-white font-semibold outline-none cursor-pointer">
-                                    <option value="DEFAULT">Urutan Waktu</option><option value="NAME_ASC">Nama A-Z</option><option value="NAME_DESC">Nama Z-A</option>
-                                </select>
-                                <button onClick={downloadMatrixPDF} disabled={filterFolder === 'Semua' || matrixResults.length === 0} className="flex-1 sm:flex-none bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center hover:bg-emerald-100 shadow-sm disabled:opacity-50 transition-colors">
-                                    <i className="fas fa-file-pdf mr-2"></i> PDF Matriks
-                                </button>
-                            </>
-                        )}
-                        {activeTab === 'BUTIR' && (
-                            <>
-                                <button onClick={downloadAnalisis} className="flex-1 sm:flex-none bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center hover:bg-emerald-100 shadow-sm transition-colors"><i className="fas fa-file-excel mr-2"></i> CSV</button>
-                                <button onClick={downloadAnalisisPDF} disabled={analysisData.length === 0} className="flex-1 sm:flex-none bg-blue-50 text-blue-700 border border-blue-200 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center hover:bg-blue-100 shadow-sm transition-colors disabled:opacity-50"><i className="fas fa-file-pdf mr-2"></i> PDF</button>
-                            </>
-                        )}
-                        <button onClick={fetchSupabaseData} className="flex-1 sm:flex-none bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center hover:bg-blue-100 shadow-sm"><i className="fas fa-sync-alt"></i></button>
-                        <button onClick={deleteAllResults} disabled={isDeleting || results.length === 0} className="w-full sm:w-auto bg-rose-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center hover:bg-rose-700 disabled:opacity-50 shadow-sm">
-                            <Trash2 size={16} className="mr-2"/> Hapus Semua
-                        </button>
-                    </div>
-                </div>
-                
-                {activeTab === 'BUTIR' ? (
-                    <>
-                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex flex-wrap gap-4 items-center text-xs font-medium text-slate-700 shadow-sm">
-                            <span className="font-bold text-blue-900 mr-2"><i className="fas fa-info-circle mr-1"></i> Indikator Kesulitan (Data Aktual Terfilter):</span>
-                            <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded">Sangat Mudah (&gt;85%)</span>
-                            <span className="bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-200">Mudah (70-85%)</span>
-                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">Sedang (50-69%)</span>
-                            <span className="bg-rose-50 text-rose-700 px-2 py-1 rounded border border-rose-200">Sulit (30-49%)</span>
-                            <span className="bg-rose-100 text-rose-800 px-2 py-1 rounded">Sangat Sulit (&lt;30%)</span>
+             return (
+               <AdminLayout title="Analisis Data Ujian">
+                 <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-4">
+                     <div className="bg-white rounded-xl border p-2 flex-1 w-full xl:w-auto shadow-sm flex flex-col xl:flex-row gap-3 items-start xl:items-center">
+                        <div className="flex gap-1 p-1 bg-slate-100 rounded-lg w-full sm:w-auto shrink-0">
+                            <button onClick={() => setActiveTab('BUTIR')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'BUTIR' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Analisis Butir Soal</button>
+                            <button onClick={() => setActiveTab('INDIVIDU')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'INDIVIDU' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Analisis Per Siswa</button>
                         </div>
-                        <div className="bg-white rounded-xl border overflow-x-auto shadow-sm">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-slate-50 border-b">
-                                    <tr>
-                                        <th className="p-4 text-center w-12">No</th><th className="p-4">Kategori / Tipe</th><th className="p-4">Pertanyaan (Cuplikan)</th>
-                                        <th className="p-4 text-center">Benar</th><th className="p-4 text-center">Salah</th><th className="p-4 text-center">Kosong</th><th className="p-4 text-center">% Benar</th><th className="p-4 text-center">Kesulitan</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {analysisData.map((d, idx) => {
-                                        const tempDiv = document.createElement("div"); tempDiv.innerHTML = d.question || "";
-                                        const plainText = tempDiv.textContent || tempDiv.innerText || "";
-                                        return (
-                                        <tr key={d.id} className="border-b hover:bg-slate-50 transition-colors">
-                                            <td className="p-4 text-center font-bold text-slate-500">{idx + 1}</td>
-                                            <td className="p-4"><div className="font-semibold text-slate-700">{d.category || d.folder || 'Utama'}</div><div className="text-[10px] uppercase font-bold text-blue-500 bg-blue-50 inline-block px-2 py-0.5 rounded mt-1 border border-blue-100">{d.type}</div></td>
-                                            <td className="p-4 max-w-xs truncate text-slate-600" title={plainText}>{plainText}</td>
-                                            <td className="p-4 text-center font-bold text-emerald-600">{d.correct}</td>
-                                            <td className="p-4 text-center font-bold text-rose-600">{d.wrong}</td>
-                                            <td className="p-4 text-center font-bold text-slate-400">{d.empty}</td>
-                                            <td className="p-4 text-center font-black text-blue-600">{d.percentage}%</td>
-                                            <td className="p-4 text-center"><span className={`px-2 py-1 rounded text-xs font-bold border ${d.difficulty.includes('Mudah') ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : d.difficulty === 'Sedang' ? 'bg-blue-50 text-blue-700 border-blue-200' : d.difficulty.includes('Sulit') ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>{d.difficulty}</span></td>
-                                        </tr>
-                                    )})}
-                                    {analysisData.length === 0 && <tr><td colSpan="8" className="text-center p-8 text-slate-500 font-bold bg-slate-50">Belum ada data soal pada filter ini.</td></tr>}
-                                </tbody>
-                            </table>
+                        
+                        <div className="flex flex-wrap items-center gap-2 xl:border-l xl:pl-3 w-full sm:w-auto bg-slate-50 p-1.5 rounded-lg border border-slate-200 xl:border-none xl:bg-transparent">
+                            <select value={filterSchool} onChange={e=>setFilterSchool(e.target.value)} className="border-none py-1 px-2 text-sm bg-transparent font-semibold focus:ring-0 outline-none cursor-pointer text-slate-700 w-full sm:w-auto">
+                                {schoolList.map(s => <option key={s} value={s}>{s === 'Semua' ? 'Sekolah: Semua' : s}</option>)}
+                            </select>
+                            <div className="w-px h-5 bg-slate-300 hidden sm:block"></div>
+                            <select value={filterDate} onChange={e=>setFilterDate(e.target.value)} className="border-none py-1 px-2 text-sm bg-transparent font-semibold focus:ring-0 outline-none cursor-pointer text-emerald-700 w-full sm:w-auto">
+                                {dateList.map(d => <option key={d} value={d}>{d === 'Semua' ? 'Tanggal: Semua' : d}</option>)}
+                            </select>
+                            <div className="w-px h-5 bg-slate-300 hidden sm:block"></div>
+                            <select value={filterFolder} onChange={e=>setFilterFolder(e.target.value)} className="border-none py-1 px-2 text-sm bg-transparent font-semibold focus:ring-0 outline-none cursor-pointer text-blue-700 w-full sm:w-auto">
+                                {availableFolders.map(f => <option key={f} value={f}>{f === 'Semua' ? 'Kategori: Semua' : f}</option>)}
+                            </select>
                         </div>
-                    </>
-                ) : (
-                    <>
-                        {filterFolder === 'Semua' ? (
-                            <div className="bg-amber-50 border border-amber-200 p-8 rounded-xl text-center shadow-sm">
-                                <AlertCircle size={48} className="mx-auto text-amber-500 mb-4"/>
-                                <h3 className="text-lg font-bold text-amber-800 mb-2">Pilih Filter Kategori/Folder!</h3>
-                                <p className="text-amber-700 text-sm font-medium">Anda harus memilih satu Kategori (Folder Soal) yang spesifik di menu atas untuk melihat Matriks Analisis Individu agar tabel tidak memanjang keluar layar.</p>
-                            </div>
-                        ) : (
-                            <div className="bg-white rounded-xl border overflow-x-auto shadow-sm pb-4">
-                                <table className="w-full text-left text-sm whitespace-nowrap">
-                                    <thead className="bg-slate-50 border-b">
-                                        <tr>
-                                            <th className="p-4 border-r w-12 text-center text-slate-600 font-bold">No</th>
-                                            <th className="p-4 border-r text-slate-600 font-bold min-w-[200px]">Nama Peserta</th>
-                                            {filteredQuestions.map((q, i) => (
-                                                <th key={q.id} className="p-4 border-r text-center text-slate-600 font-bold w-12" title={q.question?.replace(/<[^>]+>/g, '')}>{i+1}</th>
-                                            ))}
-                                            <th className="p-4 border-r text-center text-slate-600 font-bold bg-blue-50">Jml Skor</th>
-                                            <th className="p-4 text-center text-slate-600 font-bold bg-emerald-50">Nilai Akhir</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {matrixResults.map((r, i) => {
-                                            const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
-                                            const earned = details.reduce((sum, d) => sum + (d.pointsEarned || 0), 0);
-                                            return (
-                                                <tr key={r.id} className="border-b hover:bg-slate-50">
-                                                    <td className="p-4 border-r text-center text-slate-500 font-medium">{i+1}</td>
-                                                    <td className="p-4 border-r font-bold text-slate-800 uppercase">{r.participant?.name}</td>
-                                                    {filteredQuestions.map((q) => {
-                                                        const d = details.find(x => x.qId === q.id);
-                                                        let status = '-'; let colorClass = 'text-slate-300';
-                                                        if (d) {
-                                                            if (d.isEmpty) { status = 'K'; colorClass = 'text-amber-500 font-bold bg-amber-50'; }
-                                                            else if (d.isCorrect) { status = 'B'; colorClass = 'text-emerald-600 font-bold bg-emerald-50'; }
-                                                            else if (d.pointsEarned > 0) { status = 'P'; colorClass = 'text-blue-600 font-bold bg-blue-50'; } // Partial
-                                                            else { status = 'S'; colorClass = 'text-rose-600 font-bold bg-rose-50'; }
-                                                        }
-                                                        return <td key={q.id} className={`p-4 border-r text-center ${colorClass}`}>{status}</td>;
-                                                    })}
-                                                    <td className="p-4 border-r text-center font-bold text-blue-700 bg-blue-50/30">{earned}</td>
-                                                    <td className="p-4 text-center font-black text-emerald-600 bg-emerald-50/30">{r.score}</td>
-                                                </tr>
-                                            );
-                                        })}
-                                        {matrixResults.length === 0 && <tr><td colSpan={filteredQuestions.length + 4} className="text-center p-8 text-slate-500 font-bold">Tidak ada peserta yang mengambil ujian pada kategori dan tanggal ini.</td></tr>}
-                                    </tbody>
-                                </table>
-                                <div className="mt-4 px-6 flex gap-4 text-xs font-bold text-slate-500">
-                                    <span><span className="text-emerald-600">B:</span> Benar</span>
-                                    <span><span className="text-rose-600">S:</span> Salah</span>
-                                    <span><span className="text-blue-600">P:</span> Parsial (Benar Sebagian)</span>
-                                    <span><span className="text-amber-500">K:</span> Kosong</span>
-                                </div>
-                            </div>
-                        )}
-                    </>
-                )}
-              </AdminLayout>
-            );
+                     </div>
+
+                     <div className="flex flex-wrap gap-2 w-full xl:w-auto">
+                         {activeTab === 'INDIVIDU' && (
+                             <>
+                                 <select value={sortOrder} onChange={e=>setSortOrder(e.target.value)} className="flex-1 sm:flex-none border border-slate-300 rounded-xl p-2.5 text-sm bg-white font-semibold outline-none cursor-pointer">
+                                     <option value="DEFAULT">Urutan Waktu</option><option value="NAME_ASC">Nama A-Z</option><option value="NAME_DESC">Nama Z-A</option>
+                                 </select>
+                                 <button onClick={downloadMatrixPDF} disabled={filterFolder === 'Semua' || matrixResults.length === 0} className="flex-1 sm:flex-none bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center hover:bg-emerald-100 shadow-sm disabled:opacity-50 transition-colors">
+                                     <i className="fas fa-file-pdf mr-2"></i> PDF Matriks
+                                 </button>
+                             </>
+                         )}
+                         {activeTab === 'BUTIR' && (
+                             <>
+                                 <button onClick={downloadAnalisis} className="flex-1 sm:flex-none bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center hover:bg-emerald-100 shadow-sm transition-colors"><i className="fas fa-file-excel mr-2"></i> CSV</button>
+                                 <button onClick={downloadAnalisisPDF} disabled={analysisData.length === 0} className="flex-1 sm:flex-none bg-blue-50 text-blue-700 border border-blue-200 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center hover:bg-blue-100 shadow-sm transition-colors disabled:opacity-50"><i className="fas fa-file-pdf mr-2"></i> PDF</button>
+                             </>
+                         )}
+                         <button onClick={fetchSupabaseData} className="flex-1 sm:flex-none bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center hover:bg-blue-100 shadow-sm"><i className="fas fa-sync-alt"></i></button>
+                         <button onClick={deleteAllResults} disabled={isDeleting || results.length === 0} className="w-full sm:w-auto bg-rose-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center hover:bg-rose-700 disabled:opacity-50 shadow-sm">
+                             <Trash2 size={16} className="mr-2"/> Hapus Semua
+                         </button>
+                     </div>
+                 </div>
+                 
+                 {activeTab === 'BUTIR' ? (
+                     <>
+                         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex flex-wrap gap-4 items-center text-xs font-medium text-slate-700 shadow-sm">
+                             <span className="font-bold text-blue-900 mr-2"><i className="fas fa-info-circle mr-1"></i> Indikator Kesulitan (Data Aktual Terfilter):</span>
+                             <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded">Sangat Mudah (&gt;85%)</span>
+                             <span className="bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-200">Mudah (70-85%)</span>
+                             <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">Sedang (50-69%)</span>
+                             <span className="bg-rose-50 text-rose-700 px-2 py-1 rounded border border-rose-200">Sulit (30-49%)</span>
+                             <span className="bg-rose-100 text-rose-800 px-2 py-1 rounded">Sangat Sulit (&lt;30%)</span>
+                         </div>
+                         <div className="bg-white rounded-xl border overflow-x-auto shadow-sm">
+                             <table className="w-full text-left text-sm">
+                                 <thead className="bg-slate-50 border-b">
+                                     <tr>
+                                         <th className="p-4 text-center w-12">No</th><th className="p-4">Kategori / Tipe</th><th className="p-4">Pertanyaan (Cuplikan)</th>
+                                         <th className="p-4 text-center">Benar</th><th className="p-4 text-center">Salah</th><th className="p-4 text-center">Kosong</th><th className="p-4 text-center">% Benar</th><th className="p-4 text-center">Kesulitan</th>
+                                     </tr>
+                                 </thead>
+                                 <tbody>
+                                     {analysisData.map((d, idx) => {
+                                         const tempDiv = document.createElement("div"); tempDiv.innerHTML = d.question || "";
+                                         const plainText = tempDiv.textContent || tempDiv.innerText || "";
+                                         return (
+                                         <tr key={d.id} className="border-b hover:bg-slate-50 transition-colors">
+                                             <td className="p-4 text-center font-bold text-slate-500">{idx + 1}</td>
+                                             <td className="p-4"><div className="font-semibold text-slate-700">{d.category || d.folder || 'Utama'}</div><div className="text-[10px] uppercase font-bold text-blue-500 bg-blue-50 inline-block px-2 py-0.5 rounded mt-1 border border-blue-100">{d.type}</div></td>
+                                             <td className="p-4 max-w-xs truncate text-slate-600" title={plainText}>{plainText}</td>
+                                             <td className="p-4 text-center font-bold text-emerald-600">{d.correct}</td>
+                                             <td className="p-4 text-center font-bold text-rose-600">{d.wrong}</td>
+                                             <td className="p-4 text-center font-bold text-slate-400">{d.empty}</td>
+                                             <td className="p-4 text-center font-black text-blue-600">{d.percentage}%</td>
+                                             <td className="p-4 text-center"><span className={`px-2 py-1 rounded text-xs font-bold border ${d.difficulty.includes('Mudah') ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : d.difficulty === 'Sedang' ? 'bg-blue-50 text-blue-700 border-blue-200' : d.difficulty.includes('Sulit') ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>{d.difficulty}</span></td>
+                                         </tr>
+                                     )})}
+                                     {analysisData.length === 0 && <tr><td colSpan="8" className="text-center p-8 text-slate-500 font-bold bg-slate-50">Belum ada data soal pada filter ini.</td></tr>}
+                                 </tbody>
+                             </table>
+                         </div>
+                     </>
+                 ) : (
+                     <>
+                         {filterFolder === 'Semua' ? (
+                             <div className="bg-amber-50 border border-amber-200 p-8 rounded-xl text-center shadow-sm">
+                                 <AlertCircle size={48} className="mx-auto text-amber-500 mb-4"/>
+                                 <h3 className="text-lg font-bold text-amber-800 mb-2">Pilih Filter Kategori/Folder!</h3>
+                                 <p className="text-amber-700 text-sm font-medium">Anda harus memilih satu Kategori (Folder Soal) yang spesifik di menu atas untuk melihat Matriks Analisis Individu agar tabel tidak memanjang keluar layar.</p>
+                             </div>
+                         ) : (
+                             <div className="bg-white rounded-xl border overflow-x-auto shadow-sm pb-4">
+                                 <table className="w-full text-left text-sm whitespace-nowrap">
+                                     <thead className="bg-slate-50 border-b">
+                                         <tr>
+                                             <th className="p-4 border-r w-12 text-center text-slate-600 font-bold">No</th>
+                                             <th className="p-4 border-r text-slate-600 font-bold min-w-[200px]">Nama Peserta</th>
+                                             {filteredQuestions.map((q, i) => (
+                                                 <th key={q.id} className="p-4 border-r text-center text-slate-600 font-bold w-12" title={q.question?.replace(/<[^>]+>/g, '')}>{i+1}</th>
+                                             ))}
+                                             <th className="p-4 border-r text-center text-slate-600 font-bold bg-blue-50">Jml Skor</th>
+                                             <th className="p-4 text-center text-slate-600 font-bold bg-emerald-50">Nilai Akhir</th>
+                                         </tr>
+                                     </thead>
+                                     <tbody>
+                                         {matrixResults.map((r, i) => {
+                                             const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
+                                             const earned = details.reduce((sum, d) => sum + (d.pointsEarned || 0), 0);
+                                             return (
+                                                 <tr key={r.id} className="border-b hover:bg-slate-50">
+                                                     <td className="p-4 border-r text-center text-slate-500 font-medium">{i+1}</td>
+                                                     <td className="p-4 border-r font-bold text-slate-800 uppercase">{r.participant?.name}</td>
+                                                     {filteredQuestions.map((q) => {
+                                                         const d = details.find(x => x.qId === q.id);
+                                                         let status = '-'; let colorClass = 'text-slate-300';
+                                                         if (d) {
+                                                             if (d.isEmpty) { status = 'K'; colorClass = 'text-amber-500 font-bold bg-amber-50'; }
+                                                             else if (d.isCorrect) { status = 'B'; colorClass = 'text-emerald-600 font-bold bg-emerald-50'; }
+                                                             else if (d.pointsEarned > 0) { status = 'P'; colorClass = 'text-blue-600 font-bold bg-blue-50'; } // Partial
+                                                             else { status = 'S'; colorClass = 'text-rose-600 font-bold bg-rose-50'; }
+                                                         }
+                                                         return <td key={q.id} className={`p-4 border-r text-center ${colorClass}`}>{status}</td>;
+                                                     })}
+                                                     <td className="p-4 border-r text-center font-bold text-blue-700 bg-blue-50/30">{earned}</td>
+                                                     <td className="p-4 text-center font-black text-emerald-600 bg-emerald-50/30">{r.score}</td>
+                                                 </tr>
+                                             );
+                                         })}
+                                         {matrixResults.length === 0 && <tr><td colSpan={filteredQuestions.length + 4} className="text-center p-8 text-slate-500 font-bold">Tidak ada peserta yang mengambil ujian pada kategori dan tanggal ini.</td></tr>}
+                                     </tbody>
+                                 </table>
+                                 <div className="mt-4 px-6 flex gap-4 text-xs font-bold text-slate-500">
+                                     <span><span className="text-emerald-600">B:</span> Benar</span>
+                                     <span><span className="text-rose-600">S:</span> Salah</span>
+                                     <span><span className="text-blue-600">P:</span> Parsial (Benar Sebagian)</span>
+                                     <span><span className="text-amber-500">K:</span> Kosong</span>
+                                 </div>
+                             </div>
+                         )}
+                     </>
+                 )}
+               </AdminLayout>
+             );
           };
 
           const AdminReports = () => {
