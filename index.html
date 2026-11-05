@@ -1575,7 +1575,10 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              const downloadDetailPDF = () => {
                  if (!selectedAnalysis) return;
                  const printWindow = window.open('', '_blank');
-                 if (!printWindow) { alert("Pop-up diblokir browser! Izinkan pop-up (Always allow) di kanan atas layar Anda."); return; }
+                 if (!printWindow) {
+                     alert("Pop-up diblokir browser! Izinkan pop-up (Always allow) di kanan atas layar Anda.");
+                     return;
+                 }
                  
                  const studentName = selectedAnalysis.participant?.name || 'Siswa';
                  let rowsHTML = '';
@@ -1647,15 +1650,14 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                      `;
                  });
 
-                 const scr = "scr" + "ipt";
                  const htmlContent = `
                     <!DOCTYPE html>
                     <html>
                     <head>
                         <title>Detail_Jawaban_${studentName.replace(/\s+/g, '_')}</title>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-                        <`+scr+` src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></`+scr+`>
-                        <`+scr+` src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></`+scr+`>
+                        ${"<scr" + "ipt src='https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js'></scr" + "ipt>"}
+                        ${"<scr" + "ipt src='https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js'></scr" + "ipt>"}
                         <style>
                             body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #333; padding: 10px; }
                             .header { text-align: center; margin-bottom: 20px; }
@@ -1686,7 +1688,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                              </thead>
                              <tbody>${rowsHTML}</tbody>
                          </table>
-                         <`+scr+`>
+                         ${"<scr" + "ipt>"}
                             window.onload = function() { 
                                 if (window.renderMathInElement) {
                                     window.renderMathInElement(document.body, {
@@ -1702,7 +1704,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                 }
                                 setTimeout(function() { window.print(); window.close(); }, 800); 
                             }
-                        </`+scr+`>
+                        ${"</scr" + "ipt>"}
                     </body>
                     </html>
                  `;
@@ -2605,7 +2607,6 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                     `;
                 });
             
-                const scr = "scr" + "ipt";
                 const htmlContent = `
                     <!DOCTYPE html>
                     <html>
@@ -2644,11 +2645,11 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                             </thead>
                             <tbody>${tableRows}</tbody>
                         </table>
-                        <`+scr+`>
+                        ${"<scr" + "ipt>"}
                             window.onload = function() { 
                                 setTimeout(function() { window.print(); window.close(); }, 500); 
                             }
-                        </`+scr+`>
+                        ${"</scr" + "ipt>"}
                     </body>
                     </html>
                 `;
@@ -2656,7 +2657,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                 printWindow.document.write(htmlContent);
                 printWindow.document.close();
             };
-              
+
             const downloadMatrixPDF = () => {
                 if (matrixResults.length === 0) return alert("Tidak ada data untuk dicetak.");
                 
@@ -2698,7 +2699,6 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                     tableRows += rowHtml;
                 });
             
-                const scr = "scr" + "ipt";
                 const htmlContent = `
                     <!DOCTYPE html>
                     <html>
@@ -2734,11 +2734,11 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                             <span><span style="color:#2563eb">P:</span> Parsial (Benar Sebagian)</span>
                             <span><span style="color:#d97706">K:</span> Kosong</span>
                         </div>
-                        <`+scr+`>
+                        ${"<scr" + "ipt>"}
                             window.onload = function() { 
                                 setTimeout(function() { window.print(); window.close(); }, 500); 
                             }
-                        </`+scr+`>
+                        ${"</scr" + "ipt>"}
                     </body>
                     </html>
                 `;
