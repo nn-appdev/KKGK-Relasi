@@ -2886,12 +2886,10 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
 
           const AdminReports = () => {
              const [filterSchool, setFilterSchool] = useState('Semua');
-             const [filterDate, setFilterDate] = useState('Semua');
-             const [filterFolder, setFilterFolder] = useState('Semua'); // BARIS BARU
+             const [filterFolder, setFilterFolder] = useState('Semua');
              const [sortOrder, setSortOrder] = useState('DEFAULT');
              const [activeTab, setActiveTab] = useState('NILAI');
              
-             // FUNGSI BANTUAN BARU UNTUK MENDAPATKAN NAMA FOLDER DARI RESULT
              const getResultFolder = (r) => {
                  const firstQId = r.detail?.detailedResults?.find(x => x.qId !== 'SYS_CHEATS')?.qId;
                  if (!firstQId) return 'Utama';
@@ -2900,16 +2898,14 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              };
 
              const schoolList = ['Semua', ...new Set(results.map(r => r.participant?.school).filter(Boolean))];
-             const dateList = ['Semua', ...new Set(results.map(r => new Date(r.startTime).toLocaleDateString('id-ID')))];
-             const folderList = ['Semua', ...new Set(results.map(getResultFolder))]; // BARIS BARU
+             const folderList = ['Semua', ...new Set(results.map(getResultFolder))];
              
              let processedResults = results.filter(r => {
                  const matchSchool = filterSchool === 'Semua' || r.participant?.school === filterSchool;
-                 const matchDate = filterDate === 'Semua' || new Date(r.startTime).toLocaleDateString('id-ID') === filterDate;
-                 return matchSchool && matchDate;
+                 const matchFolder = filterFolder === 'Semua' || getResultFolder(r) === filterFolder;
+                 return matchSchool && matchFolder;
              });
              
-             // Logika Sortir Lengkap (Waktu, Nama, Ranking)
              if (sortOrder === 'RANK_DESC') {
                  processedResults.sort((a, b) => b.score - a.score);
              } else if (sortOrder === 'RANK_ASC') {
@@ -2918,7 +2914,6 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                  processedResults.sort((a, b) => (a.participant?.name || '').localeCompare(b.participant?.name || ''));
              }
 
-             // Kalkulasi Statistik Logis (Mean & Std Dev)
              const scores = processedResults.map(r => r.score);
              const validCount = scores.length;
              const meanScore = validCount > 0 ? (scores.reduce((a,b) => a + b, 0) / validCount) : 0;
@@ -2940,15 +2935,8 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                              </select>
                              <div className="w-px h-6 bg-slate-300"></div>
                              
-                             {/* TAMBAHKAN BLOK DROPDOWN FOLDER INI */}
                              <select value={filterFolder} onChange={e=>setFilterFolder(e.target.value)} className="border-none bg-transparent p-2 text-sm font-semibold outline-none cursor-pointer text-blue-700">
                                  {folderList.map(f => <option key={f} value={f}>{f === 'Semua' ? 'Kategori: Semua' : f}</option>)}
-                             </select>
-                             <div className="w-px h-6 bg-slate-300"></div>
-                             {/* SELESAI TAMBAHAN */}
-
-                             <select value={filterDate} onChange={e=>setFilterDate(e.target.value)} className="border-none bg-transparent p-2 text-sm font-semibold outline-none cursor-pointer text-emerald-700">
-                                {dateList.map(d => <option key={d} value={d}>{d === 'Semua' ? 'Tanggal: Semua' : d}</option>)}
                              </select>
                          </div>
                          
@@ -2972,9 +2960,8 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                          <p className="text-slate-600 font-medium">{organizerName}</p>
                       </div>
                       
-                      <div className={`mb-6 grid gap-4 text-sm bg-slate-50 p-4 rounded-lg border border-slate-200 ${activeTab === 'NILAI' ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2 md:grid-cols-3'}`}>
+                      <div className={`mb-6 grid gap-4 text-sm bg-slate-50 p-4 rounded-lg border border-slate-200 ${activeTab === 'NILAI' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3'}`}>
                          <div><p className="text-slate-500 text-xs font-bold uppercase mb-1">Sekolah</p><p className="font-black text-blue-800">{filterSchool}</p></div>
-                         <div><p className="text-slate-500 text-xs font-bold uppercase mb-1">Tanggal Ujian</p><p className="font-black text-emerald-700">{filterDate}</p></div>
                          <div><p className="text-slate-500 text-xs font-bold uppercase mb-1">Total Peserta</p><p className="font-black text-slate-800">{validCount} Siswa</p></div>
                          {activeTab === 'NILAI' && (
                              <>
