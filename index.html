@@ -426,31 +426,30 @@
                     const jmlPeserta = allTokens.filter(t => !t.code.startsWith('SYS_') && t.status === 'AVAILABLE').length;
                     setTotalAngkaToken(jmlPeserta);
                     
-                    // Eksekusi pengaturan sistem tanpa risiko terpotong
-                    const fToken = allTokens.find(t => t.code === 'SYS_SETTING_FOLDER');
+                    // Eksekusi pengaturan sistem dengan KUNCI SANDI BARU (Anti-Tampering)
+                    const fToken = allTokens.find(t => t.code === 'SEC_CFG_FLD_88XQ2');
                     if (fToken) setActiveFolder(fToken.status);
 
-                    const oToken = allTokens.find(t => t.code === 'SYS_SETTING_ORGANIZER');
+                    const oToken = allTokens.find(t => t.code === 'SEC_CFG_ORG_91MK5');
                     if (oToken) setOrganizerName(oToken.status);
 
-                    const lToken = allTokens.find(t => t.code === 'SYS_SETTING_LOGO');
+                    const lToken = allTokens.find(t => t.code === 'SEC_CFG_LGO_77PL1');
                     if (lToken) setSchoolLogo(lToken.status);
 
-                    const dtToken = allTokens.find(t => t.code === 'SYS_SETTING_DATE');
+                    const dtToken = allTokens.find(t => t.code === 'SEC_CFG_DAT_44ZV9');
                     if (dtToken) setExamDate(dtToken.status);
 
-                    const stToken = allTokens.find(t => t.code === 'SYS_SETTING_START_TIME');
+                    const stToken = allTokens.find(t => t.code === 'SEC_CFG_STM_22XW3');
                     if (stToken) setStartTimeStr(stToken.status);
 
-                    const etToken = allTokens.find(t => t.code === 'SYS_SETTING_END_TIME');
+                    const etToken = allTokens.find(t => t.code === 'SEC_CFG_ETM_55QN8');
                     if (etToken) setEndTimeStr(etToken.status);
 
-                    const rqToken = allTokens.find(t => t.code === 'SYS_SETTING_RANDOM_Q');
+                    const rqToken = allTokens.find(t => t.code === 'SEC_CFG_RNQ_33LK7');
                     if (rqToken) setIsRandomQ(rqToken.status === 'TRUE');
 
-                    const roToken = allTokens.find(t => t.code === 'SYS_SETTING_RANDOM_OPT');
+                    const roToken = allTokens.find(t => t.code === 'SEC_CFG_RNO_66YM4');
                     if (roToken) setIsRandomOpt(roToken.status === 'TRUE');
-                }
 
                 if (isAdminLoggedIn) {
                    // Tarik RIBUAN hasil ujian peserta tanpa terpotong
@@ -1097,22 +1096,20 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                     };
 
                     await Promise.all([
-                        upsertSetting('SYS_SETTING_ORGANIZER', tempOrganizer),
-                        upsertSetting('SYS_SETTING_LOGO', tempLogo),
-                        upsertSetting('SYS_SETTING_DATE', tempDate),
-                        upsertSetting('SYS_SETTING_START_TIME', tempStartTime),
-                        upsertSetting('SYS_SETTING_END_TIME', tempEndTime),
-                        upsertSetting('SYS_SETTING_RANDOM_Q', tempRandomQ ? 'TRUE' : 'FALSE'),
-                        upsertSetting('SYS_SETTING_RANDOM_OPT', tempRandomOpt ? 'TRUE' : 'FALSE')
+                        upsertSetting('SEC_CFG_ORG_91MK5', tempOrganizer),
+                        upsertSetting('SEC_CFG_LGO_77PL1', tempLogo),
+                        upsertSetting('SEC_CFG_DAT_44ZV9', tempDate),
+                        upsertSetting('SEC_CFG_STM_22XW3', tempStartTime),
+                        upsertSetting('SEC_CFG_ETM_55QN8', tempEndTime),
+                        upsertSetting('SEC_CFG_RNQ_33LK7', tempRandomQ ? 'TRUE' : 'FALSE'),
+                        upsertSetting('SEC_CFG_RNO_66YM4', tempRandomOpt ? 'TRUE' : 'FALSE')
                     ]);
 
-                    // Panggil fetchSupabaseData untuk update state pusat di App()
                     await fetchSupabaseData();
-                    alert("Pengaturan berhasil disimpan!");
+                    alert("Pengaturan aman berhasil disimpan!");
                 } catch(e) { alert("Gagal: " + e.message); }
                 setIsSaving(false);
              };
-
              return (
                 <AdminLayout title="Dashboard">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
