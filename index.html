@@ -2953,16 +2953,38 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                          <p className="text-slate-600 font-medium">{organizerName}</p>
                       </div>
                       
-                      <div className={`mb-6 grid gap-4 text-sm bg-slate-50 p-4 rounded-lg border border-slate-200 ${activeTab === 'NILAI' ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2 md:grid-cols-4'}`}>
-                         <div><p className="text-slate-500 text-xs font-bold uppercase mb-1">Sekolah</p><p className="font-black text-blue-800 truncate" title={filterSchool}>{filterSchool}</p></div>
-                         <div><p className="text-slate-500 text-xs font-bold uppercase mb-1">Mata Pelajaran</p><p className="font-black text-indigo-700 truncate" title={filterFolder}>{filterFolder}</p></div>
-                         <div><p className="text-slate-500 text-xs font-bold uppercase mb-1">Total Peserta</p><p className="font-black text-slate-800">{validCount} Siswa</p></div>
-                         {activeTab === 'NILAI' && (
-                             <>
-                                <div><p className="text-slate-500 text-xs font-bold uppercase mb-1">Rata-Rata Nilai</p><p className="font-black text-emerald-700">{meanScore.toFixed(2)}</p></div>
-                                <div><p className="text-slate-500 text-xs font-bold uppercase mb-1">Standar Deviasi</p><p className="font-black text-amber-600">± {stdDeviation.toFixed(2)}</p></div>
-                             </>
-                         )}
+                      <div className="mb-6 bg-slate-50 p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col gap-4">
+                         {/* Baris 1: Sekolah */}
+                         <div className="border-b border-slate-200 pb-3">
+                             <p className="text-slate-500 text-xs font-bold uppercase mb-1">Sekolah</p>
+                             <p className="font-black text-blue-800 text-lg">{filterSchool}</p>
+                         </div>
+                         
+                         {/* Baris 2: Mata Pelajaran */}
+                         <div className={`pb-3 ${activeTab === 'NILAI' ? 'border-b border-slate-200' : ''}`}>
+                             <p className="text-slate-500 text-xs font-bold uppercase mb-1">Mata Pelajaran</p>
+                             <p className="font-black text-indigo-700 text-lg">{filterFolder}</p>
+                         </div>
+                         
+                         {/* Baris 3: Statistik (Total, Rata-rata, Standar Deviasi) */}
+                         <div className={`grid gap-4 text-sm ${activeTab === 'NILAI' ? 'grid-cols-3' : 'grid-cols-1'}`}>
+                             <div>
+                                 <p className="text-slate-500 text-xs font-bold uppercase mb-1">Total Peserta</p>
+                                 <p className="font-black text-slate-800 text-base">{validCount} Siswa</p>
+                             </div>
+                             {activeTab === 'NILAI' && (
+                                 <>
+                                    <div>
+                                        <p className="text-slate-500 text-xs font-bold uppercase mb-1">Rata-Rata Nilai</p>
+                                        <p className="font-black text-emerald-700 text-base">{meanScore.toFixed(2)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-slate-500 text-xs font-bold uppercase mb-1">Standar Deviasi</p>
+                                        <p className="font-black text-amber-600 text-base">± {stdDeviation.toFixed(2)}</p>
+                                    </div>
+                                 </>
+                             )}
+                         </div>
                       </div>
                       
                       <table className="w-full text-left border-collapse border border-slate-800 text-sm">
@@ -2977,17 +2999,28 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                             )}
                          </tr></thead>
                          <tbody>
-                            {processedResults.map((r, i) => {
+                           {processedResults.map((r, i) => {
                                const durSecs = Math.max(0, Math.floor((r.endTime - r.startTime) / 1000));
                                const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
                                const cheats = details.find(x => x.qId === 'SYS_CHEATS')?.cheatCount || 0;
+                               
+                               // Pengecekan Nama Ganda secara mandiri (Aman dari error)
+                               const rawName = (r.participant?.name || '').trim().toUpperCase();
+                               const isDuplicate = processedResults.filter(pr => (pr.participant?.name || '').trim().toUpperCase() === rawName).length > 1;
+                               
                                return (
-                               <tr key={i} className="border-b border-slate-800 font-medium">
+                               <tr key={i} className={`border-b border-slate-800 font-medium ${isDuplicate ? 'bg-rose-50' : ''}`}>
                                   <td className="border-r border-slate-800 py-2.5 px-3 text-center">{i+1}</td>
-                                  <td className="border-r border-slate-800 py-2.5 px-3 uppercase">{r.participant?.name}</td>
+                                  
+                                  {/* Kolom Nama dengan Indikator Ganda */}
+                                  <td className="border-r border-slate-800 py-2.5 px-3 uppercase">
+                                     <span className={isDuplicate ? 'text-rose-700 font-bold' : ''}>{rawName}</span>
+                                     {isDuplicate && <span className="ml-2 text-[9px] bg-rose-600 text-white px-1.5 py-0.5 rounded font-bold print:border print:border-rose-600 print:text-rose-600 print:bg-transparent">GANDA</span>}
+                                  </td>
+                                  
                                   <td className="border-r border-slate-800 py-2.5 px-3">{r.participant?.school}</td>
                                   {activeTab === 'NILAI' ? (
-                                      <><td className="border-r border-slate-800 py-2.5 px-3 text-center text-xs">{`${Math.floor(durSecs/60)}m ${durSecs%60}s`}</td><td className="py-2.5 px-3 text-center font-bold text-blue-700 bg-blue-50/30">{r.score}</td></>
+                                      <><td className="border-r border-slate-800 py-2.5 px-3 text-center text-xs">{`${Math.floor(durSecs/60)}m ${durSecs%60}s`}</td><td className={`py-2.5 px-3 text-center font-bold ${isDuplicate ? 'text-rose-700 bg-rose-100/50' : 'text-blue-700 bg-blue-50/30'}`}>{r.score}</td></>
                                   ) : (
                                       <><td className="border-r border-slate-800 py-2.5 px-3 text-center">{cheats === 0 ? <span className="text-emerald-600 font-bold">AMAN</span> : <span className="text-rose-600 font-bold">TERDETEKSI</span>}</td><td className="py-2.5 px-3 text-center font-bold">{cheats === 0 ? '-' : <span className="text-rose-600">{cheats}x Pindah Tab</span>}</td></>
                                   )}
