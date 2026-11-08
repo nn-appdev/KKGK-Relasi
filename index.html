@@ -381,7 +381,6 @@
              try {
                 const db = await getSupabase();
 
-                // PERBAIKAN: Fungsi penarik data massal untuk mendobrak hard limit 1.000 baris Supabase
                 const fetchAllData = async (tableName) => {
                     let allData = [];
                     let from = 0;
@@ -404,7 +403,6 @@
                     return allData;
                 };
 
-                // Tarik soal (biasanya tidak lebih dari 1000, tapi tetap kita amankan) dan tarik RIBUAN token
                 const [qRes, allTokens] = await Promise.all([
                     db.from('questions').select('*', { count: 'exact' }),
                     fetchAllData('tokens') 
@@ -418,15 +416,12 @@
                 }
                 
                 if(allTokens) {
-                    // Urutkan data secara manual karena ditarik secara massal
                     allTokens.sort((a, b) => new Date(b.generatedAt || 0) - new Date(a.generatedAt || 0));
                     setTokens(allTokens);
                     
-                    // Hitung token khusus siswa dengan akurat
                     const jmlPeserta = allTokens.filter(t => !t.code.startsWith('SYS_') && t.status === 'AVAILABLE').length;
                     setTotalAngkaToken(jmlPeserta);
                     
-                    // Eksekusi pengaturan sistem dengan KUNCI SANDI BARU (Anti-Tampering)
                     const fToken = allTokens.find(t => t.code === 'SEC_CFG_FLD_88XQ2');
                     if (fToken) setActiveFolder(fToken.status);
 
@@ -450,9 +445,9 @@
 
                     const roToken = allTokens.find(t => t.code === 'SEC_CFG_RNO_66YM4');
                     if (roToken) setIsRandomOpt(roToken.status === 'TRUE');
+                }
 
                 if (isAdminLoggedIn) {
-                   // Tarik RIBUAN hasil ujian peserta tanpa terpotong
                    const allResults = await fetchAllData('results');
                    
                    if(allResults) {
@@ -466,6 +461,7 @@
                       setResults(formattedResults);
                    }
                 }
+                
                 setDbStatus('connected');
                 setInitErrorMsg('');
              } catch (error) {
