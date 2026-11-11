@@ -2205,33 +2205,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                     alert("Folder beserta isinya berhasil dihapus dari database!");
                 } catch(e) { alert("Gagal hapus folder: " + e.message); }
                 setIsSaving(false);
-            };
-
-            const editFolder = async (oldName) => {
-                const newName = prompt(`Ubah nama folder "${oldName}" menjadi:`, oldName);
-                if (newName && newName.trim() !== '' && newName.trim() !== oldName) {
-                    setIsSaving(true);
-                    try {
-                        const db = await getSupabase();
-                        const folderToken = tokens.find(t => t.code && t.code.startsWith('SYS_FOLDER_') && t.status === oldName);
-                        if (folderToken) { 
-                            const { error: err1 } = await db.from('tokens').update({ status: newName.trim() }).eq('code', folderToken.code); 
-                            if (err1) throw err1;
-                        }
-                        const { error: err2 } = await db.from('questions').update({ folder: newName.trim() }).eq('folder', oldName);
-                        if (err2) throw err2;
-                        
-                        if (activeFolder === oldName) { 
-                            const { error: err3 } = await db.from('tokens').update({ status: newName.trim() }).eq('code', 'SYS_SETTING_FOLDER'); 
-                            if (err3) throw err3;
-                            setActiveFolder(newName.trim()); 
-                        }
-                        await fetchSupabaseData(); setFilterFolder(newName.trim());
-                        alert("Nama folder berhasil diubah di database!");
-                    } catch(e) { alert("Gagal ubah folder: " + e.message); }
-                    setIsSaving(false);
-                }
-            };
+            };          
 
             const deleteFolder = async (fname) => {
                 if (fname === 'Utama') { alert("Folder Utama tidak dapat dihapus."); return; }
