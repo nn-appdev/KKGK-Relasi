@@ -2205,32 +2205,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                     alert("Folder beserta isinya berhasil dihapus dari database!");
                 } catch(e) { alert("Gagal hapus folder: " + e.message); }
                 setIsSaving(false);
-            };          
-
-            const deleteFolder = async (fname) => {
-                if (fname === 'Utama') { alert("Folder Utama tidak dapat dihapus."); return; }
-                if (!confirm(`Hapus folder "${fname}" beserta seluruh soal di dalamnya secara permanen?`)) return;
-                setIsSaving(true);
-                try {
-                    const db = await getSupabase();
-                    const folderToken = tokens.find(t => t.code && t.code.startsWith('SYS_FOLDER_') && t.status === fname);
-                    if (folderToken) { 
-                        const { error: err1 } = await db.from('tokens').delete().eq('code', folderToken.code); 
-                        if (err1) throw err1;
-                    }
-                    const { error: err2 } = await db.from('questions').delete().eq('folder', fname);
-                    if (err2) throw err2;
-                    
-                    if (activeFolder === fname) { 
-                        const { error: err3 } = await db.from('tokens').update({ status: 'Utama' }).eq('code', 'SYS_SETTING_FOLDER'); 
-                        if (err3) throw err3;
-                        setActiveFolder('Utama'); 
-                    }
-                    await fetchSupabaseData(); setFilterFolder('Utama'); setView('folders');
-                    alert("Folder beserta isinya berhasil dihapus dari database!");
-                } catch(e) { alert("Gagal hapus folder: " + e.message); }
-                setIsSaving(false);
-            };
+            };                      
 
             if (view === 'create' || view === 'edit') {
                const availableFolders = [...new Set([...questions.map(q => q.folder || 'Utama'), ...tokens.filter(t => t.code && t.code.startsWith('SYS_FOLDER_')).map(t => t.status), filterFolder, 'Utama'])];
