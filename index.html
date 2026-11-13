@@ -924,8 +924,10 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              }).length;
 
              const handleFinalSubmit = async () => {
+               // Lapisan pelindung 1: Cegah klik ganda brutal dari jari siswa yang panik
                if (isSubmitting) return; 
                setIsSubmitting(true);
+               
                const result = calculateScore(activeSession.answers, examQuestions);
                const finalDetailedResults = [...result.detailedResults, { qId: 'SYS_CHEATS', cheatCount: activeSession.cheatWarnings || 0 }];
                const payload = {
@@ -934,23 +936,23 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                   token: activeSession.token, score: result.finalScore, start_time: activeSession.startTime,
                   end_time: new Date().getTime(), detailed_results: JSON.stringify(finalDetailedResults)
                };
+               
                try {
                  const db = await getSupabase();
                  
-                 const { data: existingData } = await db.from('results').select('id').eq('token', activeSession.token).maybeSingle();
-                 if (existingData) {
-                     alert("Sistem mendeteksi jawaban Anda sudah terkirim sebelumnya.");
-                     setActiveSession({ ...activeSession, status: 'SUBMITTED', score: result.finalScore });
-                     navigate('/submitted');
-                     return;
-                 }
+                 // EKSEKUSI LANGSUNG: Tidak ada lagi logika pencegatan (select existing data)
+                 // Biarkan data masuk apa adanya untuk menjamin keamanan jawaban siswa
+                 const { error: insertErr } = await db.from('results').insert([payload]);
+                 if (insertErr) throw insertErr;
 
-                 await db.from('results').insert([payload]);
+                 // Hanya ubah status menjadi SUBMITTED jika database sudah merespons HTTP 201 (Sukses)
                  setActiveSession({ ...activeSession, status: 'SUBMITTED', score: result.finalScore });
                  navigate('/submitted');
                } catch (err) {
-                 alert("Gagal mengirim ujian: " + err.message);
-                 setIsSubmitting(false); setShowConfirm(false);
+                 // Penanganan error sejati (Sinyal Putus / Server Penuh)
+                 alert("GAGAL MENGIRIM KARENA GANGGUAN SINYAL ATAU SERVER.\n\nJANGAN PANIK DAN JANGAN TUTUP APLIKASI! Jawaban Anda masih aman di HP ini. Silakan cari posisi sinyal internet yang bagus, lalu tekan tombol 'Kirim Ulang'.\n\nDetail Error: " + err.message);
+                 setIsSubmitting(false); 
+                 // Siswa akan tetap berada di halaman konfirmasi dan bisa menekan tombol kirim lagi
                }
              };
 
