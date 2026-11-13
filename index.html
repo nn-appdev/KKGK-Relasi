@@ -500,6 +500,23 @@
             const [error, setError] = useState('');
             const [isChecking, setIsChecking] = useState(false);
 
+            // ALGORITMA PENDETEKSI DATA TERSANGKUT DI HP (LOCAL STORAGE)
+            const rawLocal = window.localStorage.getItem('cbt_active_session');
+            let pendingSession = null;
+            try { if (rawLocal) pendingSession = JSON.parse(rawLocal); } catch(e){}
+            
+            // Cek apakah ada data jawaban minimal 1 butir soal yang tersimpan
+            const hasPendingData = pendingSession && pendingSession.answers && Object.keys(pendingSession.answers).length > 0;
+
+            const pulihkanSesi = () => {
+                if(!confirm("Pulihkan jawaban yang tersimpan di HP ini? Anda akan diarahkan kembali ke halaman ujian untuk menekan tombol kirim.")) return;
+                // Paksa ubah status yang tadinya 'SUBMITTED' (gagal kirim) kembali menjadi 'ACTIVE'
+                pendingSession.status = 'ACTIVE';
+                window.localStorage.setItem('cbt_active_session', JSON.stringify(pendingSession));
+                // Refresh halaman agar sistem bereaksi dan otomatis melempar siswa ke dalam ujian
+                window.location.reload();
+            };
+
             const handleLogin = async (e) => {
               e.preventDefault();
               setIsChecking(true); setError('');
@@ -568,6 +585,23 @@
                       {isChecking ? 'Memeriksa Token...' : 'Masuk Ujian'}
                     </button>
                   </form>
+
+                  {/* TOMBOL DARURAT: HANYA MUNCUL JIKA ADA JAWABAN TERSANGKUT DI HP */}
+                  {hasPendingData && (
+                     <div className="mt-6 p-5 bg-amber-50 border border-amber-200 rounded-xl shadow-inner">
+                         <p className="text-amber-800 text-sm font-bold text-center mb-3">
+                             <i className="fas fa-database mr-1"></i> Terdeteksi sisa jawaban ujian di HP ini!
+                         </p>
+                         <button
+                             type="button"
+                             onClick={pulihkanSesi}
+                             className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center"
+                         >
+                             Pulihkan & Kirim Jawaban Kemarin
+                         </button>
+                     </div>
+                  )}
+
                   <div className="mt-8 pt-6 border-t border-slate-100 flex justify-between items-center">
                      <span className={`text-xs font-bold px-3 py-1.5 rounded-md flex items-center ${dbStatus === 'connected' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
                          <Cloud size={14} className="mr-1.5"/> {dbStatus === 'connected' ? 'On-line' : 'Offline'}
