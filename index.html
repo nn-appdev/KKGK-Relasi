@@ -543,12 +543,28 @@
                     }
                 }
 
+                // PENGHANCUR CACHE: Bersihkan sisa-sisa ujian lama yang mungkin nyangkut di memori HP
+                window.localStorage.removeItem('cbt_active_session');
+
                 setIsAdminLoggedIn(false); 
-                setActiveSession({ 
+                
+                // PAKSA TULIS ULANG: Ambil identitas MURNI dari database (tokenObj), abaikan memori lama
+                const freshSession = { 
                     token: tokenObj.code, 
-                    participant: { name: tokenObj.participant_name || 'Peserta', school: tokenObj.participant_school || organizerName, nis: '', grade: '6' }, 
-                    answers: {}, flagged: [], status: 'SETUP' 
-                });
+                    participant: { 
+                        name: (tokenObj.participant_name || 'Peserta').trim().toUpperCase(), 
+                        school: (tokenObj.participant_school || organizerName).trim() 
+                    }, 
+                    answers: {}, 
+                    flagged: [], 
+                    status: 'SETUP' 
+                };
+                
+                setActiveSession(freshSession);
+                
+                // Paksa simpan sesi baru ke local storage sebelum pindah halaman
+                window.localStorage.setItem('cbt_active_session', JSON.stringify(freshSession));
+                
                 navigate('/instruction');
               } catch (err) { setError(err.message || 'Gagal terhubung ke server.'); }
               setIsChecking(false);
