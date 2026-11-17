@@ -3051,47 +3051,47 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              const stdDeviation = Math.sqrt(variance);
 
              // --- ALGORITMA RANKING SEKOLAH (ANTI-CRASH MUTLAK) ---
-        let mathMapel = 'Matematika';
-        let indoMapel = 'Bahasa Indonesia';
-        let rawData = [];
+             let mathMapel = 'Matematika';
+             let indoMapel = 'Bahasa Indonesia';
+             let rawData = [];
 
-        try {
-            // Menyedot data secara dinamis tanpa peduli apa nama variabel asli di file Anda
-            if (typeof results !== 'undefined' && Array.isArray(results)) {
-                rawData = results;
-            } else if (typeof processedResults !== 'undefined' && Array.isArray(processedResults)) {
-                rawData = processedResults;
-            }
-        } catch(e) {}
+             try {
+                 if (typeof results !== 'undefined' && Array.isArray(results)) {
+                     rawData = results;
+                 } else if (typeof processedResults !== 'undefined' && Array.isArray(processedResults)) {
+                     rawData = processedResults;
+                 }
+             } catch(e) {}
 
-        rawData.forEach(r => {
-            if (r.folder && r.folder.toLowerCase().includes('matematika')) mathMapel = r.folder;
-            if (r.folder && r.folder.toLowerCase().includes('bahasa')) indoMapel = r.folder;
-        });
+             rawData.forEach(r => {
+                 if (r.folder && r.folder.toLowerCase().includes('matematika')) mathMapel = r.folder;
+                 if (r.folder && r.folder.toLowerCase().includes('bahasa')) indoMapel = r.folder;
+             });
 
-        const schoolRanking = [];
-        if (activeTab === 'RANKING') {
-            const sData = {};
-            rawData.forEach(r => {
-                const sch = (r.participant?.school || 'Tidak Diketahui').trim().toUpperCase();
-                if (!sData[sch]) sData[sch] = { name: sch, students: new Set(), mathTotal: 0, mathCount: 0, indoTotal: 0, indoCount: 0 };
-                
-                sData[sch].students.add((r.participant?.name || '').trim().toUpperCase());
-                
-                if (r.folder === mathMapel) { sData[sch].mathTotal += (Number(r.score) || 0); sData[sch].mathCount += 1; }
-                if (r.folder === indoMapel) { sData[sch].indoTotal += (Number(r.score) || 0); sData[sch].indoCount += 1; }
-            });
+             const schoolRanking = [];
+             if (activeTab === 'RANKING') {
+                 const sData = {};
+                 rawData.forEach(r => {
+                     const sch = (r.participant?.school || 'Tidak Diketahui').trim().toUpperCase();
+                     if (!sData[sch]) sData[sch] = { name: sch, students: new Set(), mathTotal: 0, mathCount: 0, indoTotal: 0, indoCount: 0 };
+                     
+                     sData[sch].students.add((r.participant?.name || '').trim().toUpperCase());
+                     
+                     if (r.folder === mathMapel) { sData[sch].mathTotal += (Number(r.score) || 0); sData[sch].mathCount += 1; }
+                     if (r.folder === indoMapel) { sData[sch].indoTotal += (Number(r.score) || 0); sData[sch].indoCount += 1; }
+                 });
 
-            Object.values(sData).forEach(sd => {
-                const mathAvg = sd.mathCount > 0 ? (sd.mathTotal / sd.mathCount) : 0;
-                const indoAvg = sd.indoCount > 0 ? (sd.indoTotal / sd.indoCount) : 0;
-                const totalAvg = (mathAvg + indoAvg) / 2; 
-                schoolRanking.push({ school: sd.name, studentCount: sd.students.size, mathAvg, indoAvg, totalAvg });
-            });
-            
-            schoolRanking.sort((a, b) => b.totalAvg - a.totalAvg);
-        }
-              return (
+                 Object.values(sData).forEach(sd => {
+                     const mathAvg = sd.mathCount > 0 ? (sd.mathTotal / sd.mathCount) : 0;
+                     const indoAvg = sd.indoCount > 0 ? (sd.indoTotal / sd.indoCount) : 0;
+                     const totalAvg = (mathAvg + indoAvg) / 2; 
+                     schoolRanking.push({ school: sd.name, studentCount: sd.students.size, mathAvg, indoAvg, totalAvg });
+                 });
+                 
+                 schoolRanking.sort((a, b) => b.totalAvg - a.totalAvg);
+             }
+
+             return (
                 <AdminLayout title="Cetak Laporan Dokumen (F4)">
                    <div className="mb-6 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-4 rounded-xl border shadow-sm print:hidden">
                       <div className="flex gap-2 bg-slate-100 p-1.5 rounded-lg w-full xl:w-auto shrink-0">
@@ -3124,7 +3124,6 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                          </button>
                          <button onClick={() => {
                              const originalTitle = document.title;
-                             // Membersihkan nama dari karakter ilegal untuk file windows
                              const safeSchool = filterSchool.replace(/[/\\?%*:|"<>]/g, '-').replace(/\s+/g, '_');
                              const safeFolder = filterFolder.replace(/[/\\?%*:|"<>]/g, '-').replace(/\s+/g, '_');
                              
@@ -3135,8 +3134,6 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                              
                              document.title = docName;
                              window.print();
-                             
-                             // Mengembalikan title segera setelah jendela print tertutup
                              setTimeout(() => { document.title = originalTitle; }, 500);
                          }} className="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-lg font-bold text-sm flex items-center shadow-md transition-colors"><i className="fas fa-file-pdf mr-2"></i> Cetak Laporan (PDF)</button>
                       </div>
@@ -3144,18 +3141,16 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                    
                    <div className="bg-white border shadow-md mx-auto w-full max-w-[21.5cm] min-h-[33cm] p-8 sm:p-12 print-container">
                       <div className="text-center border-b-2 border-slate-800 pb-4 mb-6">
-                         <h1 className="text-xl font-bold uppercase tracking-widest text-slate-900 mb-1">{activeTab === 'NILAI' ? 'Laporan Try Out TKA-1' : 'Laporan Deteksi Pelanggaran'}</h1>
+                         <h1 className="text-xl font-bold uppercase tracking-widest text-slate-900 mb-1">{activeTab === 'NILAI' ? 'Laporan Try Out TKA-1' : (activeTab === 'PELANGGARAN' ? 'Laporan Deteksi Pelanggaran' : 'Laporan Ranking Sekolah')}</h1>
                          <p className="text-slate-600 font-medium">{organizerName}</p>
                       </div>
                       
                       <div className="mb-6 bg-slate-50 p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col gap-4">
-                         {/* Baris 1: Sekolah */}
                          <div className="border-b border-slate-200 pb-3">
-                             <p className="text-slate-500 text-xs font-bold uppercase mb-1">Sekolah</p>
+                             <p className="text-slate-500 text-xs font-bold uppercase mb-1">Sekolah / Kelas</p>
                              <p className="font-black text-blue-800 text-lg">{filterSchool}</p>
                          </div>
                          
-                         {/* Baris 2 & 3: Hanya tampil jika BUKAN mode Ranking */}
                          {activeTab !== 'RANKING' && (
                             <>
                                <div className={`pb-3 ${activeTab === 'NILAI' ? 'border-b border-slate-200' : ''}`}>
@@ -3182,26 +3177,6 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                </div>
                             </>
                          )}
-                         
-                         {/* Baris 3: Statistik (Total, Rata-rata, Standar Deviasi) */}
-                         <div className={`grid gap-4 text-sm ${activeTab === 'NILAI' ? 'grid-cols-3' : 'grid-cols-1'}`}>
-                             <div>
-                                 <p className="text-slate-500 text-xs font-bold uppercase mb-1">Total Peserta</p>
-                                 <p className="font-black text-slate-800 text-base">{validCount} Siswa</p>
-                             </div>
-                             {activeTab === 'NILAI' && (
-                                 <>
-                                    <div>
-                                        <p className="text-slate-500 text-xs font-bold uppercase mb-1">Rata-Rata Nilai</p>
-                                        <p className="font-black text-emerald-700 text-base">{meanScore.toFixed(2)}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-slate-500 text-xs font-bold uppercase mb-1">Standar Deviasi</p>
-                                        <p className="font-black text-amber-600 text-base">± {stdDeviation.toFixed(2)}</p>
-                                    </div>
-                                 </>
-                             )}
-                         </div>
                       </div>
                       
                       {activeTab === 'RANKING' ? (
@@ -3249,48 +3224,46 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                   </thead>
                                   <tbody>
                                       {processedResults.map((r, i) => {
-                               const durSecs = Math.max(0, Math.floor((r.endTime - r.startTime) / 1000));
-                               const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
-                               const cheats = details.find(x => x.qId === 'SYS_CHEATS')?.cheatCount || 0;
-                               
-                               // Pengecekan Nama Ganda secara mandiri (Aman dari error)
-                               const rawName = (r.participant?.name || '').trim().toUpperCase();
-                               const isDuplicate = processedResults.filter(pr => (pr.participant?.name || '').trim().toUpperCase() === rawName).length > 1;
-                               
-                               return (
-                               <tr key={i} className={`border-b border-slate-800 font-medium ${isDuplicate ? 'bg-rose-50' : ''}`}>
-                                  <td className="border-r border-slate-800 py-2.5 px-3 text-center">{i+1}</td>
-                                  
-                                  {/* Kolom Nama dengan Indikator Ganda */}
-                                  <td className="border-r border-slate-800 py-2.5 px-3 uppercase">
-                                     <span className={isDuplicate ? 'text-rose-700 font-bold' : ''}>{rawName}</span>
-                                     {isDuplicate && <span className="ml-2 text-[9px] bg-rose-600 text-white px-1.5 py-0.5 rounded font-bold print:border print:border-rose-600 print:text-rose-600 print:bg-transparent">GANDA</span>}
-                                  </td>
-                                  
-                                  <td className="border-r border-slate-800 py-2.5 px-3">{r.participant?.school}</td>
-                                  {activeTab === 'NILAI' ? (
-                                      <><td className="border-r border-slate-800 py-2.5 px-3 text-center text-xs">{`${Math.floor(durSecs/60)}m ${durSecs%60}s`}</td><td className={`py-2.5 px-3 text-center font-bold ${isDuplicate ? 'text-rose-700 bg-rose-100/50' : 'text-blue-700 bg-blue-50/30'}`}>{r.score}</td></>
-                                  ) : (
-                                      <><td className="border-r border-slate-800 py-2.5 px-3 text-center">{cheats === 0 ? <span className="text-emerald-600 font-bold">AMAN</span> : <span className="text-rose-600 font-bold">TERDETEKSI</span>}</td><td className="py-2.5 px-3 text-center font-bold">{cheats === 0 ? '-' : <span className="text-rose-600">{cheats}x Pindah Tab</span>}</td></>
-                                  )}
-                               </tr>
-                            )})}
-                            {processedResults.length === 0 && <tr><td colSpan="5" className="text-center py-10 text-slate-500 italic">{processedResults.length === 0 && <tr><td colSpan="5" className="text-center py-10 text-slate-500 italic">Tidak ada data peserta ujian untuk ditampilkan.</td></tr>}
-                         </tbody>
-                      </table>
-                  </div>
-              )}
-              
-              {/* Bagian Tanda Tangan */}
-              <div className="mt-16 flex justify-end text-center text-slate-800 font-medium text-sm">
-                 <div>
-                    <p className="mb-20">Mengetahui,<br/>Admin TKA Kec. Wonosobo</p>
-                    <p className="font-bold underline uppercase">_______________________</p>
-                 </div>
-              </div>
-
-           </div>
-        </AdminLayout>
+                                          const durSecs = Math.max(0, Math.floor((r.endTime - r.startTime) / 1000));
+                                          const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
+                                          const cheats = details.find(x => x.qId === 'SYS_CHEATS')?.cheatCount || 0;
+                                          
+                                          const rawName = (r.participant?.name || '').trim().toUpperCase();
+                                          const isDuplicate = processedResults.filter(pr => (pr.participant?.name || '').trim().toUpperCase() === rawName).length > 1;
+                                          
+                                          return (
+                                          <tr key={i} className={`border-b border-slate-800 font-medium ${isDuplicate ? 'bg-rose-50' : ''}`}>
+                                             <td className="border-r border-slate-800 py-2.5 px-3 text-center">{i+1}</td>
+                                             <td className="border-r border-slate-800 py-2.5 px-3 uppercase">
+                                                <span className={isDuplicate ? 'text-rose-700 font-bold' : ''}>{rawName}</span>
+                                                {isDuplicate && <span className="ml-2 text-[9px] bg-rose-600 text-white px-1.5 py-0.5 rounded font-bold print:border print:border-rose-600 print:text-rose-600 print:bg-transparent">GANDA</span>}
+                                             </td>
+                                             <td className="border-r border-slate-800 py-2.5 px-3">{r.participant?.school}</td>
+                                             {activeTab === 'NILAI' ? (
+                                                 <><td className="border-r border-slate-800 py-2.5 px-3 text-center text-xs">{`${Math.floor(durSecs/60)}m ${durSecs%60}s`}</td><td className={`py-2.5 px-3 text-center font-bold ${isDuplicate ? 'text-rose-700 bg-rose-100/50' : 'text-blue-700 bg-blue-50/30'}`}>{r.score}</td></>
+                                             ) : (
+                                                 <><td className="border-r border-slate-800 py-2.5 px-3 text-center">{cheats === 0 ? <span className="text-emerald-600 font-bold">AMAN</span> : <span className="text-rose-600 font-bold">TERDETEKSI</span>}</td><td className="py-2.5 px-3 text-center font-bold">{cheats === 0 ? '-' : <span className="text-rose-600">{cheats}x Pindah Tab</span>}</td></>
+                                             )}
+                                          </tr>
+                                      )})}
+                                      {processedResults.length === 0 && <tr><td colSpan="5" className="text-center py-10 text-slate-500 italic">Tidak ada data peserta ujian untuk ditampilkan.</td></tr>}
+                                  </tbody>
+                              </table>
+                          </div>
+                      )}
+                      
+                      {/* Bagian Tanda Tangan */}
+                      <div className="mt-16 flex justify-end text-center text-slate-800 font-medium text-sm">
+                         <div>
+                            <p className="mb-20">Mengetahui,<br/>Admin TKA Kec. Wonosobo</p>
+                            <p className="font-bold underline uppercase">_______________________</p>
+                         </div>
+                      </div>
+                      
+                   </div>
+                </AdminLayout>
+             );
+          };
 
           switch (currentRoute) {
             case '/': case '/login': return <ParticipantLogin />;
