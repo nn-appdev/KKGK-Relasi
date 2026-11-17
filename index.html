@@ -3038,6 +3038,9 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              const [rankMathFolder, setRankMathFolder] = useState('');
              const [rankIndoFolder, setRankIndoFolder] = useState('');
              
+             // State baru untuk Cekboks Filter Mapel di Progress
+             const [selectedProgressMapels, setSelectedProgressMapels] = useState([]);
+             
              const getResultFolder = (r) => {
                  const firstQId = r.detail?.detailedResults?.find(x => x.qId !== 'SYS_CHEATS')?.qId;
                  if (!firstQId) return 'Utama';
@@ -3048,15 +3051,21 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              const schoolList = ['Semua', ...new Set(results.map(r => r.participant?.school).filter(Boolean))];
              const folderList = ['Semua', ...new Set(results.map(getResultFolder))];
              
-             // Urutkan mapel agar TO 1 tampil sebelum TO 2 dst.
+             // Urutkan mapel secara logis (TO 1, TO 2, dst)
              const mapelList = folderList.filter(f => f !== 'Semua').sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
 
              React.useEffect(() => {
                  if (mapelList.length > 0) {
                      if (!rankMathFolder) setRankMathFolder(mapelList.find(f => f.toLowerCase().includes('matematika')) || mapelList[0]);
                      if (!rankIndoFolder) setRankIndoFolder(mapelList.find(f => f.toLowerCase().includes('bahasa')) || mapelList[1] || mapelList[0]);
+                     // Centang semua mapel secara default saat pertama kali dimuat
+                     if (selectedProgressMapels.length === 0) setSelectedProgressMapels(mapelList);
                  }
              }, [folderList.length]);
+
+             const toggleProgressMapel = (m) => {
+                 setSelectedProgressMapels(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]);
+             };
              
              let processedResults = results.filter(r => {
                  const matchSchool = filterSchool === 'Semua' || r.participant?.school === filterSchool;
@@ -3121,35 +3130,37 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              const meanOfSchoolAvgs = validRankingCount > 0 ? (schoolRanking.reduce((a, b) => a + b.totalAvg, 0) / validRankingCount) : 0;
              const stdDevRanking = Math.sqrt(validRankingCount > 0 ? (schoolRanking.reduce((a, b) => a + Math.pow(b.totalAvg - meanOfSchoolAvgs, 2), 0) / validRankingCount) : 0);
 
-             // --- ALGORITMA TAB PERKEMBANGAN (BARU) ---
+             // --- ALGORITMA TAB PERKEMBANGAN (UPDATE DINAMIS BERDASARKAN CEKBOKS) ---
              const schoolProgress = {};
              const globalProgress = {};
-             mapelList.forEach(m => globalProgress[m] = { total: 0, count: 0 });
+             selectedProgressMapels.forEach(m => globalProgress[m] = { total: 0, count: 0 });
 
              rawData.forEach(r => {
                  const sch = (r.participant?.school || 'Tidak Diketahui').trim().toUpperCase();
                  const folder = getResultFolder(r);
                  const score = Number(r.score) || 0;
                  
-                 if (!schoolProgress[sch]) {
-                     schoolProgress[sch] = { name: sch };
-                     mapelList.forEach(m => schoolProgress[sch][m] = { total: 0, count: 0 });
-                 }
-                 
-                 if (schoolProgress[sch][folder]) {
-                     schoolProgress[sch][folder].total += score;
-                     schoolProgress[sch][folder].count += 1;
-                 }
-                 if (globalProgress[folder]) {
-                     globalProgress[folder].total += score;
-                     globalProgress[folder].count += 1;
+                 // Hanya hitung folder/mapel yang dicentang oleh user
+                 if (selectedProgressMapels.includes(folder)) {
+                     if (!schoolProgress[sch]) {
+                         schoolProgress[sch] = { name: sch };
+                         selectedProgressMapels.forEach(m => schoolProgress[sch][m] = { total: 0, count: 0 });
+                     }
+                     if (schoolProgress[sch][folder]) {
+                         schoolProgress[sch][folder].total += score;
+                         schoolProgress[sch][folder].count += 1;
+                     }
+                     if (globalProgress[folder]) {
+                         globalProgress[folder].total += score;
+                         globalProgress[folder].count += 1;
+                     }
                  }
              });
 
              const progressData = Object.values(schoolProgress).map(sd => {
                  const row = { school: sd.name };
                  let totalAvg = 0, validFolders = 0;
-                 mapelList.forEach(m => {
+                 selectedProgressMapels.forEach(m => {
                      if (sd[m].count > 0) { row[m] = sd[m].total / sd[m].count; totalAvg += row[m]; validFolders++; } 
                      else { row[m] = null; }
                  });
@@ -3163,7 +3174,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
 
              const globalAverages = {};
              let gTotalAvg = 0, gValidFolders = 0;
-             mapelList.forEach(m => {
+             selectedProgressMapels.forEach(m => {
                  if (globalProgress[m].count > 0) { globalAverages[m] = globalProgress[m].total / globalProgress[m].count; gTotalAvg += globalAverages[m]; gValidFolders++; } 
                  else { globalAverages[m] = null; }
              });
@@ -3193,18 +3204,18 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                              
                              {activeTab === 'RANKING' ? (
                                 <>
-                                   <select value={rankMathFolder} onChange={e=>setRankMathFolder(e.target.value)} className="border-none bg-transparent p-2 text-sm font-bold outline-none cursor-pointer text-blue-700" title="Pilih Folder Mapel 1">
+                                   <select value={rankMathFolder} onChange={e=>setRankMathFolder(e.target.value)} className="border-none bg-transparent p-2 text-sm font-bold outline-none cursor-pointer text-blue-700 max-w-[150px] truncate" title="Pilih Folder Mapel 1">
                                       <option value="">Pilih Mapel 1</option>
                                       {mapelList.map(f => <option key={f} value={f}>{f}</option>)}
                                    </select>
                                    <div className="w-px h-6 bg-slate-300 hidden sm:block"></div>
-                                   <select value={rankIndoFolder} onChange={e=>setRankIndoFolder(e.target.value)} className="border-none bg-transparent p-2 text-sm font-bold outline-none cursor-pointer text-indigo-700" title="Pilih Folder Mapel 2">
+                                   <select value={rankIndoFolder} onChange={e=>setRankIndoFolder(e.target.value)} className="border-none bg-transparent p-2 text-sm font-bold outline-none cursor-pointer text-indigo-700 max-w-[150px] truncate" title="Pilih Folder Mapel 2">
                                       <option value="">Pilih Mapel 2</option>
                                       {mapelList.map(f => <option key={f} value={f}>{f}</option>)}
                                    </select>
                                 </>
                              ) : activeTab === 'PERKEMBANGAN' ? (
-                                <span className="px-3 text-xs font-bold text-slate-400 uppercase">Menampilkan Seluruh Mapel</span>
+                                <span className="px-3 text-xs font-bold text-slate-400 uppercase"><i className="fas fa-filter mr-1"></i> Mode Dinamis</span>
                              ) : (
                                 <select value={filterFolder} onChange={e=>setFilterFolder(e.target.value)} className="border-none bg-transparent p-2 text-sm font-semibold outline-none cursor-pointer text-blue-700">
                                     {folderList.map(f => <option key={f} value={f}>{f === 'Semua' ? 'Kategori: Semua' : f}</option>)}
@@ -3277,11 +3288,42 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                 <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm flex flex-col justify-between"><p className="text-slate-500 text-[10px] font-bold uppercase mb-2 leading-relaxed break-words">Standar<br/>Deviasi</p><p className="font-black text-amber-600 text-xl">± {stdDevRanking.toFixed(2)}</p></div>
                             </div>
                          ) : (
-                            <div className="mt-4 pt-4 border-t border-slate-200">
-                               <p className="text-slate-600 text-sm font-medium italic">Laporan ini merekam tren capaian rata-rata dari seluruh {mapelList.length} mata pelajaran/folder ujian.</p>
+                            <div className="mt-5 pt-4 border-t border-slate-200 print:hidden">
+                               <p className="text-slate-500 text-[10px] font-bold uppercase mb-3">Tampilkan Mapel Berikut pada Grafik & Tabel Progress:</p>
+                               <div className="flex flex-wrap gap-2">
+                                   {mapelList.map(m => (
+                                       <label key={m} className={`flex items-center gap-2 cursor-pointer text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${selectedProgressMapels.includes(m) ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
+                                           <input type="checkbox" className="w-3.5 h-3.5 text-blue-600 rounded cursor-pointer accent-blue-600" checked={selectedProgressMapels.includes(m)} onChange={() => toggleProgressMapel(m)} />
+                                           <span className="max-w-[200px] truncate" title={m}>{m}</span>
+                                       </label>
+                                   ))}
+                               </div>
                             </div>
                          )}
                       </div>
+
+                      {/* GRAFIK GLOBAL KECAMATAN (MUNCUL JIKA DIPILIH SEMUA SEKOLAH) */}
+                      {activeTab === 'PERKEMBANGAN' && filterSchool === 'Semua' && selectedProgressMapels.length > 0 && (
+                          <div className="mb-8 p-6 bg-white border border-slate-200 rounded-xl shadow-sm print:break-inside-avoid">
+                              <h3 className="font-bold text-slate-800 mb-6 border-b border-slate-100 pb-3 flex items-center"><i className="fas fa-chart-bar mr-2 text-blue-600"></i> Grafik Rata-Rata Global Kecamatan</h3>
+                              <div className="space-y-4">
+                                  {selectedProgressMapels.map(m => {
+                                      const avg = globalAverages[m] || 0;
+                                      return (
+                                          <div key={m} className="flex items-center gap-4">
+                                              <div className="w-1/3 sm:w-1/4 text-xs font-bold text-slate-600 truncate text-right leading-tight" title={m}>{m}</div>
+                                              <div className="flex-1 flex items-center">
+                                                  <div className="h-6 bg-slate-100 rounded-full overflow-hidden flex-1 relative flex items-center shadow-inner">
+                                                      <div className="h-full bg-blue-500 rounded-full transition-all duration-1000" style={{ width: `${avg}%` }}></div>
+                                                  </div>
+                                                  <span className="ml-3 text-sm font-black text-blue-700 w-12">{avg.toFixed(2)}</span>
+                                              </div>
+                                          </div>
+                                      );
+                                  })}
+                              </div>
+                          </div>
+                      )}
                       
                       {activeTab === 'RANKING' ? (
                           <div className="overflow-x-auto">
@@ -3313,45 +3355,50 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                           </div>
                       ) : activeTab === 'PERKEMBANGAN' ? (
                           <div className="overflow-x-auto">
-                              {filterSchool === 'Semua' ? (
-                                  <table className="w-full text-sm border-collapse border border-slate-800 print:text-xs">
+                              {selectedProgressMapels.length === 0 ? (
+                                  <div className="text-center py-12 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 font-bold">
+                                      <i className="fas fa-exclamation-triangle text-3xl mb-3 block opacity-50"></i>
+                                      Harap centang minimal satu mata pelajaran di atas untuk melihat tabel progress.
+                                  </div>
+                              ) : filterSchool === 'Semua' ? (
+                                  <table className="w-full text-sm border-collapse border border-slate-800 print:text-[10px]">
                                       <thead>
                                           <tr className="bg-slate-200 border-b border-slate-800">
                                               <th className="border-r border-slate-800 py-3 px-3 w-12 text-center">No</th>
                                               <th className="border-r border-slate-800 py-3 px-3 text-left">Nama Sekolah</th>
-                                              {mapelList.map(m => (
-                                                  <th key={m} className="border-r border-slate-800 py-3 px-3 text-center">{m}</th>
+                                              {selectedProgressMapels.map(m => (
+                                                  <th key={m} className="border-r border-slate-800 py-3 px-2 text-center" title={m}>
+                                                      <span className="line-clamp-2 leading-tight">{m}</span>
+                                                  </th>
                                               ))}
                                               <th className="py-3 px-3 bg-blue-100 text-center">Rata-Rata Total</th>
                                           </tr>
                                       </thead>
                                       <tbody>
-                                          {/* Baris Global Rekap */}
                                           <tr className="border-b-2 border-slate-800 bg-emerald-50 font-bold">
                                               <td colSpan="2" className="border-r border-slate-800 py-3 px-3 text-right text-emerald-800 uppercase">Rata-Rata Global Kecamatan</td>
-                                              {mapelList.map(m => (
-                                                  <td key={m} className="border-r border-slate-800 py-3 px-3 text-center text-emerald-700">{globalAverages[m] !== null ? globalAverages[m].toFixed(2) : '-'}</td>
+                                              {selectedProgressMapels.map(m => (
+                                                  <td key={m} className="border-r border-slate-800 py-3 px-2 text-center text-emerald-700">{globalAverages[m] !== null ? globalAverages[m].toFixed(2) : '-'}</td>
                                               ))}
                                               <td className="py-3 px-3 text-center text-blue-800 bg-blue-100">{globalAverages.overallAvg.toFixed(2)}</td>
                                           </tr>
-                                          {/* Baris Data Tiap Sekolah */}
                                           {progressData.map((pd, i) => (
                                               <tr key={i} className="border-b border-slate-800 hover:bg-slate-50 font-medium">
                                                   <td className="border-r border-slate-800 py-2.5 px-3 text-center">{i+1}</td>
-                                                  <td className="border-r border-slate-800 py-2.5 px-3 uppercase text-slate-800">{pd.school}</td>
-                                                  {mapelList.map(m => (
-                                                      <td key={m} className="border-r border-slate-800 py-2.5 px-3 text-center font-bold text-slate-700">{pd[m] !== null ? pd[m].toFixed(2) : <span className="text-slate-300">-</span>}</td>
+                                                  <td className="border-r border-slate-800 py-2.5 px-3 uppercase text-slate-800 min-w-[150px]">{pd.school}</td>
+                                                  {selectedProgressMapels.map(m => (
+                                                      <td key={m} className="border-r border-slate-800 py-2.5 px-2 text-center font-bold text-slate-700">{pd[m] !== null ? pd[m].toFixed(2) : <span className="text-slate-300">-</span>}</td>
                                                   ))}
                                                   <td className="py-2.5 px-3 text-center font-black text-blue-700 bg-blue-50/50 print:bg-transparent">{pd.overallAvg.toFixed(2)}</td>
                                               </tr>
                                           ))}
-                                          {progressData.length === 0 && <tr><td colSpan={mapelList.length + 3} className="text-center py-10 italic text-slate-500">Data belum tersedia.</td></tr>}
+                                          {progressData.length === 0 && <tr><td colSpan={selectedProgressMapels.length + 3} className="text-center py-10 italic text-slate-500">Data belum tersedia.</td></tr>}
                                       </tbody>
                                   </table>
                               ) : (
                                   <div className="flex flex-col gap-6">
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                          {mapelList.map((m, i) => {
+                                          {selectedProgressMapels.map((m, i) => {
                                               const pData = progressData.find(p => p.school === filterSchool.toUpperCase());
                                               const avg = pData && pData[m] !== null ? pData[m] : 0;
                                               const gAvg = globalAverages[m] || 0;
