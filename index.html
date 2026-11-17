@@ -3196,22 +3196,49 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                       
                       {activeTab === 'RANKING' ? (
                           <div className="overflow-x-auto">
-                              {/* KODE TABEL RANKING YANG SAYA BERIKAN SEBELUMNYA DIMASUKKAN DI SINI */}
                               <table className="w-full text-sm border-collapse border border-slate-800 print:text-xs">
-                                 ...
+                                 <thead>
+                                    <tr className="bg-slate-200 border-b border-slate-800">
+                                       <th className="border-r border-slate-800 py-3 px-3 w-12 text-center">No</th>
+                                       <th className="border-r border-slate-800 py-3 px-3 text-left">Nama Sekolah</th>
+                                       <th className="border-r border-slate-800 py-3 px-3 w-24 text-center">Jml Siswa</th>
+                                       <th className="border-r border-slate-800 py-3 px-3 text-center">{mathMapel}</th>
+                                       <th className="border-r border-slate-800 py-3 px-3 text-center">{indoMapel}</th>
+                                       <th className="py-3 px-3 bg-emerald-200 text-center">Rata-Rata Total</th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                    {schoolRanking.map((sr, i) => (
+                                       <tr key={i} className="border-b border-slate-800 font-medium hover:bg-slate-50">
+                                          <td className="border-r border-slate-800 py-2.5 px-3 text-center">{i+1}</td>
+                                          <td className="border-r border-slate-800 py-2.5 px-3 uppercase">{sr.school}</td>
+                                          <td className="border-r border-slate-800 py-2.5 px-3 text-center">{sr.studentCount}</td>
+                                          <td className="border-r border-slate-800 py-2.5 px-3 text-center font-bold text-blue-700">{sr.mathAvg.toFixed(2)}</td>
+                                          <td className="border-r border-slate-800 py-2.5 px-3 text-center font-bold text-indigo-700">{sr.indoAvg.toFixed(2)}</td>
+                                          <td className="py-2.5 px-3 text-center font-black text-emerald-800 bg-emerald-50 print:bg-transparent">{sr.totalAvg.toFixed(2)}</td>
+                                       </tr>
+                                    ))}
+                                    {schoolRanking.length === 0 && <tr><td colSpan="6" className="text-center py-10 italic text-slate-500">Belum ada data nilai sekolah yang terkumpul.</td></tr>}
+                                 </tbody>
                               </table>
                           </div>
                       ) : (
                           <div className="overflow-x-auto">
-                              {/* TABEL LAMA ANDA (BARIS 3197 KE BAWAH) BERADA DI SINI */}
                               <table className="w-full text-left border-collapse border border-slate-800 text-sm">
-                                 ...
-                              </table>
-                          </div>
-                      )}
-                         </tr></thead>
-                         <tbody>
-                           {processedResults.map((r, i) => {
+                                  <thead className="bg-slate-100 uppercase font-bold text-xs">
+                                      <tr className="border-b border-slate-800">
+                                          <th className="border-r border-slate-800 py-2.5 px-3 text-center w-12">No</th>
+                                          <th className="border-r border-slate-800 py-2.5 px-3">Nama Peserta</th>
+                                          <th className="border-r border-slate-800 py-2.5 px-3">Asal Sekolah</th>
+                                          {activeTab === 'NILAI' ? (
+                                              <><th className="border-r border-slate-800 py-2.5 px-3 text-center w-28">Durasi</th><th className="py-2.5 px-3 text-center w-24">Skor</th></>
+                                          ) : (
+                                              <><th className="border-r border-slate-800 py-2.5 px-3 text-center w-28">Status Keamanan</th><th className="py-2.5 px-3 text-center w-24">Aksi</th></>
+                                          )}
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                                      {processedResults.map((r, i) => {
                                const durSecs = Math.max(0, Math.floor((r.endTime - r.startTime) / 1000));
                                const details = Array.isArray(r.detail?.detailedResults) ? r.detail.detailedResults : [];
                                const cheats = details.find(x => x.qId === 'SYS_CHEATS')?.cheatCount || 0;
