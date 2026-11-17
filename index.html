@@ -1865,16 +1865,31 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                 const earned = details.reduce((sum, d) => sum + (d.pointsEarned || 0), 0);
                                 const maxP = details.reduce((sum, d) => sum + (d.questionMaxPoints || 0), 0);
                                 const folderName = getResultFolder(r);
+                                
+                                // --- ALGORITMA PENDETEKSI NAMA GANDA ---
+                                const rawName = (r.participant?.name || '').trim().toUpperCase();
+                                const isDuplicate = processedResults.filter(pr => (pr.participant?.name || '').trim().toUpperCase() === rawName).length > 1;
+
                                 return (
-                                <tr key={r.id} className={`border-b transition-colors ${selectedResults.includes(r.id) ? 'bg-blue-50/40' : 'hover:bg-slate-50'}`}>
-                                    <td className="p-4 text-center"><input type="checkbox" className="w-4 h-4 cursor-pointer accent-blue-600 rounded" checked={selectedResults.includes(r.id)} onChange={() => handleSelectResult(r.id)} /></td>
+                                <tr key={r.id} className={`border-b transition-colors ${selectedResults.includes(r.id) ? 'bg-blue-50/40' : (isDuplicate ? 'bg-rose-50/60 hover:bg-rose-100/60' : 'hover:bg-slate-50')}`}>
+                                    <td className="p-4 text-center">
+                                        <input type="checkbox" className="w-4 h-4 cursor-pointer accent-blue-600 rounded" checked={selectedResults.includes(r.id)} onChange={() => handleSelectResult(r.id)} />
+                                    </td>
                                     <td className="p-4 text-center font-semibold text-slate-500">{idx + 1}</td>
-                                    <td className="p-4 font-bold text-slate-800 uppercase">{r.participant?.name}</td>
+                                    
+                                    {/* Kolom Nama dengan Indikator Ganda */}
+                                    <td className="p-4 uppercase">
+                                        <span className={isDuplicate ? 'text-rose-700 font-bold' : 'text-slate-800 font-bold'}>{r.participant?.name}</span>
+                                        {isDuplicate && <span className="ml-2 text-[10px] bg-rose-600 text-white px-2 py-0.5 rounded font-bold shadow-sm">GANDA</span>}
+                                    </td>
+                                    
                                     <td className="p-4 font-medium text-slate-600">{r.participant?.school}</td>
                                     <td className="p-4 font-semibold text-blue-600">{folderName}</td>
                                     <td className="p-4 text-center"><div className="font-bold text-slate-700">{earned} <span className="text-xs text-slate-400 font-normal">/ {maxP}</span></div></td>
                                     <td className="p-4 text-center font-black text-emerald-600 text-lg">{r.score}</td>
-                                    <td className="p-4 text-center"><button onClick={() => setSelectedAnalysis(r)} className="text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors shadow-sm">Lihat Detail</button></td>
+                                    <td className="p-4 text-center">
+                                        <button onClick={() => setSelectedAnalysis(r)} className="text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors shadow-sm">Lihat Detail</button>
+                                    </td>
                                 </tr>
                             )})}
                             {processedResults.length === 0 && <tr><td colSpan="8" className="text-center p-8 text-slate-500 font-bold bg-slate-50">Belum ada data hasil ujian yang masuk.</td></tr>}
@@ -3020,7 +3035,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              const [sortOrder, setSortOrder] = useState('DEFAULT');
              const [activeTab, setActiveTab] = useState('NILAI');
              
-             // State baru untuk Dropdown Pilihan Mapel Ranking
+             // State untuk Dropdown Pilihan Mapel Ranking
              const [rankMathFolder, setRankMathFolder] = useState('');
              const [rankIndoFolder, setRankIndoFolder] = useState('');
              
@@ -3057,13 +3072,14 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                  processedResults.sort((a, b) => (a.participant?.name || '').localeCompare(b.participant?.name || ''));
              }
 
+             // STATISTIK UNTUK TAB NILAI BIASA
              const scores = processedResults.map(r => r.score);
              const validCount = scores.length;
              const meanScore = validCount > 0 ? (scores.reduce((a,b) => a + b, 0) / validCount) : 0;
              const variance = validCount > 0 ? (scores.reduce((a,b) => a + Math.pow(b - meanScore, 2), 0) / validCount) : 0;
              const stdDeviation = Math.sqrt(variance);
 
-             // --- ALGORITMA RANKING SEKOLAH (DIPERBAIKI DENGAN FUNGSI PELACAK FOLDER) ---
+             // --- ALGORITMA RANKING SEKOLAH (DENGAN STATISTIK KETERANGAN) ---
              let rawData = [];
              try {
                  if (typeof results !== 'undefined' && Array.isArray(results)) {
@@ -3074,30 +3090,61 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              } catch(e) {}
 
              const schoolRanking = [];
+             let gMathTotal = 0, gMathCount = 0;
+             let gIndoTotal = 0, gIndoCount = 0;
+
              if (activeTab === 'RANKING') {
                  const sData = {};
+                 
                  rawData.forEach(r => {
-                     const sch = (r.participant?.school || 'Tidak Diketahui').trim().toUpperCase();
+                     const schRaw = (r.participant?.school || 'Tidak Diketahui').trim();
+                     const sch = schRaw.toUpperCase();
+                     
+                     // Terapkan filter sekolah jika ada
+                     if (filterSchool !== 'Semua' && schRaw !== filterSchool) return;
+
                      if (!sData[sch]) sData[sch] = { name: sch, students: new Set(), mathTotal: 0, mathCount: 0, indoTotal: 0, indoCount: 0 };
                      
-                     sData[sch].students.add((r.participant?.name || '').trim().toUpperCase());
+                     const studentName = (r.participant?.name || '').trim().toUpperCase();
+                     sData[sch].students.add(studentName);
                      
-                     // Menggunakan fungsi pelacak untuk mendapatkan nama folder aktual dari database Soal
                      const rFolder = getResultFolder(r);
                      
-                     if (rFolder === rankMathFolder) { sData[sch].mathTotal += (Number(r.score) || 0); sData[sch].mathCount += 1; }
-                     if (rFolder === rankIndoFolder) { sData[sch].indoTotal += (Number(r.score) || 0); sData[sch].indoCount += 1; }
+                     if (rFolder === rankMathFolder) { 
+                         sData[sch].mathTotal += (Number(r.score) || 0); 
+                         sData[sch].mathCount += 1; 
+                         gMathTotal += (Number(r.score) || 0);
+                         gMathCount += 1;
+                     }
+                     if (rFolder === rankIndoFolder) { 
+                         sData[sch].indoTotal += (Number(r.score) || 0); 
+                         sData[sch].indoCount += 1; 
+                         gIndoTotal += (Number(r.score) || 0);
+                         gIndoCount += 1;
+                     }
                  });
 
                  Object.values(sData).forEach(sd => {
-                     const mathAvg = sd.mathCount > 0 ? (sd.mathTotal / sd.mathCount) : 0;
-                     const indoAvg = sd.indoCount > 0 ? (sd.indoTotal / sd.indoCount) : 0;
-                     const totalAvg = (mathAvg + indoAvg) / 2; 
-                     schoolRanking.push({ school: sd.name, studentCount: sd.students.size, mathAvg, indoAvg, totalAvg });
+                     if (sd.mathCount > 0 || sd.indoCount > 0) {
+                         const mathAvg = sd.mathCount > 0 ? (sd.mathTotal / sd.mathCount) : 0;
+                         const indoAvg = sd.indoCount > 0 ? (sd.indoTotal / sd.indoCount) : 0;
+                         const totalAvg = (mathAvg + indoAvg) / 2; 
+                         schoolRanking.push({ school: sd.name, studentCount: sd.students.size, mathAvg, indoAvg, totalAvg });
+                     }
                  });
                  
                  schoolRanking.sort((a, b) => b.totalAvg - a.totalAvg);
              }
+
+             // Kalkulasi Statistik Global Ranking
+             const globalMathAvg = gMathCount > 0 ? (gMathTotal / gMathCount) : 0;
+             const globalIndoAvg = gIndoCount > 0 ? (gIndoTotal / gIndoCount) : 0;
+             const globalTotalAvg = (globalMathAvg + globalIndoAvg) / 2;
+             
+             const validRankingCount = schoolRanking.length;
+             const meanOfSchoolAvgs = validRankingCount > 0 ? (schoolRanking.reduce((a, b) => a + b.totalAvg, 0) / validRankingCount) : 0;
+             const varianceRanking = validRankingCount > 0 ? (schoolRanking.reduce((a, b) => a + Math.pow(b.totalAvg - meanOfSchoolAvgs, 2), 0) / validRankingCount) : 0;
+             const stdDevRanking = Math.sqrt(varianceRanking);
 
              return (
                 <AdminLayout title="Cetak Laporan Dokumen (F4)">
@@ -3117,7 +3164,6 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                              
                              {activeTab === 'RANKING' ? (
                                 <>
-                                   {/* Pilihan Folder Khusus Ranking */}
                                    <select value={rankMathFolder} onChange={e=>setRankMathFolder(e.target.value)} className="border-none bg-transparent p-2 text-sm font-bold outline-none cursor-pointer text-blue-700 max-w-[200px] truncate" title="Pilih Folder Matematika">
                                       <option value="">Pilih Mapel 1</option>
                                       {mapelList.map(f => <option key={f} value={f}>{f}</option>)}
@@ -3169,12 +3215,20 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                       </div>
                       
                       <div className="mb-6 bg-slate-50 p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col gap-4">
-                         <div className="border-b border-slate-200 pb-3">
-                             <p className="text-slate-500 text-xs font-bold uppercase mb-1">Sekolah / Kelas</p>
-                             <p className="font-black text-blue-800 text-lg">{filterSchool}</p>
+                         <div className="border-b border-slate-200 pb-3 flex justify-between items-end">
+                             <div>
+                                 <p className="text-slate-500 text-xs font-bold uppercase mb-1">Sekolah / Kelas</p>
+                                 <p className="font-black text-blue-800 text-lg">{filterSchool}</p>
+                             </div>
+                             {activeTab === 'RANKING' && (
+                                 <div className="text-right">
+                                     <p className="text-slate-500 text-[10px] font-bold uppercase mb-1">Total Sekolah Terdata</p>
+                                     <p className="font-black text-slate-800 text-lg">{validRankingCount} Institusi</p>
+                                 </div>
+                             )}
                          </div>
                          
-                         {activeTab !== 'RANKING' && (
+                         {activeTab !== 'RANKING' ? (
                             <>
                                <div className={`pb-3 ${activeTab === 'NILAI' ? 'border-b border-slate-200' : ''}`}>
                                    <p className="text-slate-500 text-xs font-bold uppercase mb-1">Mata Pelajaran</p>
@@ -3199,6 +3253,25 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                    )}
                                </div>
                             </>
+                         ) : (
+                            <div className="grid gap-4 text-sm grid-cols-2 md:grid-cols-4">
+                                <div>
+                                    <p className="text-slate-500 text-[10px] font-bold uppercase mb-1 truncate" title={rankMathFolder || 'Mapel 1'}>Rata-Rata {rankMathFolder || 'Mapel 1'}</p>
+                                    <p className="font-black text-blue-700 text-base">{globalMathAvg.toFixed(2)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-slate-500 text-[10px] font-bold uppercase mb-1 truncate" title={rankIndoFolder || 'Mapel 2'}>Rata-Rata {rankIndoFolder || 'Mapel 2'}</p>
+                                    <p className="font-black text-indigo-700 text-base">{globalIndoAvg.toFixed(2)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-slate-500 text-[10px] font-bold uppercase mb-1">Rata-Rata Total</p>
+                                    <p className="font-black text-emerald-700 text-base">{globalTotalAvg.toFixed(2)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-slate-500 text-[10px] font-bold uppercase mb-1">Standar Deviasi</p>
+                                    <p className="font-black text-amber-600 text-base">± {stdDevRanking.toFixed(2)}</p>
+                                </div>
+                            </div>
                          )}
                       </div>
                       
