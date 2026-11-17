@@ -3079,7 +3079,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              const variance = validCount > 0 ? (scores.reduce((a,b) => a + Math.pow(b - meanScore, 2), 0) / validCount) : 0;
              const stdDeviation = Math.sqrt(variance);
 
-             // --- ALGORITMA RANKING SEKOLAH (DENGAN STATISTIK KETERANGAN) ---
+             // --- ALGORITMA RANKING SEKOLAH ---
              let rawData = [];
              try {
                  if (typeof results !== 'undefined' && Array.isArray(results)) {
@@ -3156,20 +3156,21 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                       </div>
                       
                       <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
-                         <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-1 gap-1">
+                         <div className="flex flex-wrap items-center bg-slate-50 border border-slate-200 rounded-lg p-1 gap-1 w-full sm:w-auto">
                              <select value={filterSchool} onChange={e=>setFilterSchool(e.target.value)} className="border-none bg-transparent p-2 text-sm font-semibold outline-none cursor-pointer text-slate-700">
                                 {schoolList.map(s => <option key={s} value={s}>{s === 'Semua' ? 'Sekolah: Semua' : s}</option>)}
                              </select>
-                             <div className="w-px h-6 bg-slate-300"></div>
+                             <div className="w-px h-6 bg-slate-300 hidden sm:block"></div>
                              
                              {activeTab === 'RANKING' ? (
                                 <>
-                                   <select value={rankMathFolder} onChange={e=>setRankMathFolder(e.target.value)} className="border-none bg-transparent p-2 text-sm font-bold outline-none cursor-pointer text-blue-700 max-w-[200px] truncate" title="Pilih Folder Matematika">
+                                   {/* Melepas batas lebar dan truncate agar terbaca utuh */}
+                                   <select value={rankMathFolder} onChange={e=>setRankMathFolder(e.target.value)} className="border-none bg-transparent p-2 text-sm font-bold outline-none cursor-pointer text-blue-700" title="Pilih Folder Mapel 1">
                                       <option value="">Pilih Mapel 1</option>
                                       {mapelList.map(f => <option key={f} value={f}>{f}</option>)}
                                    </select>
-                                   <div className="w-px h-6 bg-slate-300"></div>
-                                   <select value={rankIndoFolder} onChange={e=>setRankIndoFolder(e.target.value)} className="border-none bg-transparent p-2 text-sm font-bold outline-none cursor-pointer text-indigo-700 max-w-[200px] truncate" title="Pilih Folder Bahasa Indonesia">
+                                   <div className="w-px h-6 bg-slate-300 hidden sm:block"></div>
+                                   <select value={rankIndoFolder} onChange={e=>setRankIndoFolder(e.target.value)} className="border-none bg-transparent p-2 text-sm font-bold outline-none cursor-pointer text-indigo-700" title="Pilih Folder Mapel 2">
                                       <option value="">Pilih Mapel 2</option>
                                       {mapelList.map(f => <option key={f} value={f}>{f}</option>)}
                                    </select>
@@ -3214,14 +3215,14 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                          <p className="text-slate-600 font-medium">{organizerName}</p>
                       </div>
                       
-                      <div className="mb-6 bg-slate-50 p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col gap-4">
-                         <div className="border-b border-slate-200 pb-3 flex justify-between items-end">
+                      <div className="mb-8 bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
                              <div>
                                  <p className="text-slate-500 text-xs font-bold uppercase mb-1">Sekolah / Kelas</p>
-                                 <p className="font-black text-blue-800 text-lg">{filterSchool}</p>
+                                 <p className="font-black text-blue-900 text-xl">{filterSchool}</p>
                              </div>
                              {activeTab === 'RANKING' && (
-                                 <div className="text-right">
+                                 <div className="sm:text-right bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
                                      <p className="text-slate-500 text-[10px] font-bold uppercase mb-1">Total Sekolah Terdata</p>
                                      <p className="font-black text-slate-800 text-lg">{validRankingCount} Institusi</p>
                                  </div>
@@ -3230,11 +3231,11 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                          
                          {activeTab !== 'RANKING' ? (
                             <>
-                               <div className={`pb-3 ${activeTab === 'NILAI' ? 'border-b border-slate-200' : ''}`}>
+                               <div className={`mt-4 pt-4 border-t border-slate-200 pb-3 ${activeTab === 'NILAI' ? 'border-b' : ''}`}>
                                    <p className="text-slate-500 text-xs font-bold uppercase mb-1">Mata Pelajaran</p>
                                    <p className="font-black text-indigo-700 text-lg">{filterFolder}</p>
                                </div>
-                               <div className={`grid gap-4 text-sm ${activeTab === 'NILAI' ? 'grid-cols-3' : 'grid-cols-1'}`}>
+                               <div className={`mt-4 grid gap-4 text-sm ${activeTab === 'NILAI' ? 'grid-cols-3' : 'grid-cols-1'}`}>
                                    <div>
                                        <p className="text-slate-500 text-xs font-bold uppercase mb-1">Total Peserta</p>
                                        <p className="font-black text-slate-800 text-base">{validCount} Siswa</p>
@@ -3254,22 +3255,23 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                </div>
                             </>
                          ) : (
-                            <div className="grid gap-4 text-sm grid-cols-2 md:grid-cols-4">
-                                <div>
-                                    <p className="text-slate-500 text-[10px] font-bold uppercase mb-1 truncate" title={rankMathFolder || 'Mapel 1'}>Rata-Rata {rankMathFolder || 'Mapel 1'}</p>
-                                    <p className="font-black text-blue-700 text-base">{globalMathAvg.toFixed(2)}</p>
+                            // Tampilan Kartu Statistik untuk Ranking (Profesional & Rapi)
+                            <div className="grid gap-4 text-sm grid-cols-2 md:grid-cols-4 mt-5 pt-5 border-t border-slate-200">
+                                <div className="bg-white p-4 rounded-xl border border-blue-100 shadow-sm flex flex-col justify-between">
+                                    <p className="text-slate-500 text-[10px] font-bold uppercase mb-2 leading-relaxed break-words">Rata-Rata<br/>{rankMathFolder || 'Mapel 1'}</p>
+                                    <p className="font-black text-blue-700 text-xl">{globalMathAvg.toFixed(2)}</p>
                                 </div>
-                                <div>
-                                    <p className="text-slate-500 text-[10px] font-bold uppercase mb-1 truncate" title={rankIndoFolder || 'Mapel 2'}>Rata-Rata {rankIndoFolder || 'Mapel 2'}</p>
-                                    <p className="font-black text-indigo-700 text-base">{globalIndoAvg.toFixed(2)}</p>
+                                <div className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm flex flex-col justify-between">
+                                    <p className="text-slate-500 text-[10px] font-bold uppercase mb-2 leading-relaxed break-words">Rata-Rata<br/>{rankIndoFolder || 'Mapel 2'}</p>
+                                    <p className="font-black text-indigo-700 text-xl">{globalIndoAvg.toFixed(2)}</p>
                                 </div>
-                                <div>
-                                    <p className="text-slate-500 text-[10px] font-bold uppercase mb-1">Rata-Rata Total</p>
-                                    <p className="font-black text-emerald-700 text-base">{globalTotalAvg.toFixed(2)}</p>
+                                <div className="bg-white p-4 rounded-xl border border-emerald-100 shadow-sm flex flex-col justify-between">
+                                    <p className="text-slate-500 text-[10px] font-bold uppercase mb-2 leading-relaxed break-words">Rata-Rata<br/>Total</p>
+                                    <p className="font-black text-emerald-700 text-xl">{globalTotalAvg.toFixed(2)}</p>
                                 </div>
-                                <div>
-                                    <p className="text-slate-500 text-[10px] font-bold uppercase mb-1">Standar Deviasi</p>
-                                    <p className="font-black text-amber-600 text-base">± {stdDevRanking.toFixed(2)}</p>
+                                <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm flex flex-col justify-between">
+                                    <p className="text-slate-500 text-[10px] font-bold uppercase mb-2 leading-relaxed break-words">Standar<br/>Deviasi</p>
+                                    <p className="font-black text-amber-600 text-xl">± {stdDevRanking.toFixed(2)}</p>
                                 </div>
                             </div>
                          )}
