@@ -3050,12 +3050,44 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              const variance = validCount > 0 ? (scores.reduce((a,b) => a + Math.pow(b - meanScore, 2), 0) / validCount) : 0;
              const stdDeviation = Math.sqrt(variance);
 
-             return (
+             // --- ALGORITMA RANKING SEKOLAH ---
+    let mathMapel = 'Matematika';
+    let indoMapel = 'Bahasa Indonesia';
+    results.forEach(r => {
+        if (r.folder && r.folder.toLowerCase().includes('matematika')) mathMapel = r.folder;
+        if (r.folder && r.folder.toLowerCase().includes('bahasa')) indoMapel = r.folder;
+    });
+
+    const schoolRanking = [];
+    if (activeTab === 'RANKING') {
+        const sData = {};
+        // Gunakan seluruh raw results agar semua sekolah terhitung tanpa terpengaruh dropdown filter saat ini
+        results.forEach(r => {
+            const sch = (r.participant?.school || 'Tidak Diketahui').trim().toUpperCase();
+            if (!sData[sch]) sData[sch] = { name: sch, students: new Set(), mathTotal: 0, mathCount: 0, indoTotal: 0, indoCount: 0 };
+            
+            sData[sch].students.add((r.participant?.name || '').trim().toUpperCase());
+            
+            if (r.folder === mathMapel) { sData[sch].mathTotal += (r.score || 0); sData[sch].mathCount += 1; }
+            if (r.folder === indoMapel) { sData[sch].indoTotal += (r.score || 0); sData[sch].indoCount += 1; }
+        });
+
+        Object.values(sData).forEach(sd => {
+            const mathAvg = sd.mathCount > 0 ? (sd.mathTotal / sd.mathCount) : 0;
+            const indoAvg = sd.indoCount > 0 ? (sd.indoTotal / sd.indoCount) : 0;
+            const totalAvg = (mathAvg + indoAvg) / 2; 
+            schoolRanking.push({ school: sd.name, studentCount: sd.students.size, mathAvg, indoAvg, totalAvg });
+        });
+        // Urutkan dari rata-rata total tertinggi ke terendah
+        schoolRanking.sort((a, b) => b.totalAvg - a.totalAvg);
+    }
+              return (
                 <AdminLayout title="Cetak Laporan Dokumen (F4)">
                    <div className="mb-6 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-4 rounded-xl border shadow-sm print:hidden">
                       <div className="flex gap-2 bg-slate-100 p-1.5 rounded-lg w-full xl:w-auto shrink-0">
                           <button onClick={() => setActiveTab('NILAI')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'NILAI' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Rekap Nilai</button>
                           <button onClick={() => setActiveTab('PELANGGARAN')} className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'PELANGGARAN' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Laporan Pelanggaran</button>
+                          <button onClick={() => setActiveTab('RANKING')} className={`px-4 py-2 text-sm font-bold rounded-md transition-colors ${activeTab === 'RANKING' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>Ranking Sekolah</button>
                       </div>
                       
                       <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
@@ -3113,11 +3145,33 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                              <p className="font-black text-blue-800 text-lg">{filterSchool}</p>
                          </div>
                          
-                         {/* Baris 2: Mata Pelajaran */}
-                         <div className={`pb-3 ${activeTab === 'NILAI' ? 'border-b border-slate-200' : ''}`}>
-                             <p className="text-slate-500 text-xs font-bold uppercase mb-1">Mata Pelajaran</p>
-                             <p className="font-black text-indigo-700 text-lg">{filterFolder}</p>
-                         </div>
+                         {/* Baris 2 & 3: Hanya tampil jika BUKAN mode Ranking */}
+                         {activeTab !== 'RANKING' && (
+                            <>
+                               <div className={`pb-3 ${activeTab === 'NILAI' ? 'border-b border-slate-200' : ''}`}>
+                                   <p className="text-slate-500 text-xs font-bold uppercase mb-1">Mata Pelajaran</p>
+                                   <p className="font-black text-indigo-700 text-lg">{filterFolder}</p>
+                               </div>
+                               <div className={`grid gap-4 text-sm ${activeTab === 'NILAI' ? 'grid-cols-3' : 'grid-cols-1'}`}>
+                                   <div>
+                                       <p className="text-slate-500 text-xs font-bold uppercase mb-1">Total Peserta</p>
+                                       <p className="font-black text-slate-800 text-base">{validCount} Siswa</p>
+                                   </div>
+                                   {activeTab === 'NILAI' && (
+                                       <>
+                                          <div>
+                                              <p className="text-slate-500 text-xs font-bold uppercase mb-1">Rata-Rata Nilai</p>
+                                              <p className="font-black text-emerald-700 text-base">{meanScore.toFixed(2)}</p>
+                                          </div>
+                                          <div>
+                                              <p className="text-slate-500 text-xs font-bold uppercase mb-1">Standar Deviasi</p>
+                                              <p className="font-black text-amber-600 text-base">± {stdDeviation.toFixed(2)}</p>
+                                          </div>
+                                       </>
+                                   )}
+                               </div>
+                            </>
+                         )}
                          
                          {/* Baris 3: Statistik (Total, Rata-rata, Standar Deviasi) */}
                          <div className={`grid gap-4 text-sm ${activeTab === 'NILAI' ? 'grid-cols-3' : 'grid-cols-1'}`}>
@@ -3140,16 +3194,21 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                          </div>
                       </div>
                       
-                      <table className="w-full text-left border-collapse border border-slate-800 text-sm">
-                         <thead className="bg-slate-100 uppercase font-bold text-xs"><tr className="border-b border-slate-800">
-                            <th className="border-r border-slate-800 py-2.5 px-3 text-center w-12">No</th>
-                            <th className="border-r border-slate-800 py-2.5 px-3">Nama Peserta</th>
-                            <th className="border-r border-slate-800 py-2.5 px-3">Asal Sekolah</th>
-                            {activeTab === 'NILAI' ? (
-                                <><th className="border-r border-slate-800 py-2.5 px-3 text-center w-28">Durasi</th><th className="py-2.5 px-3 text-center w-20">Nilai</th></>
-                            ) : (
-                                <><th className="border-r border-slate-800 py-2.5 px-3 text-center w-28">Status Keamanan</th><th className="py-2.5 px-3 text-center w-36">Peringatan</th></>
-                            )}
+                      {activeTab === 'RANKING' ? (
+                          <div className="overflow-x-auto">
+                              {/* KODE TABEL RANKING YANG SAYA BERIKAN SEBELUMNYA DIMASUKKAN DI SINI */}
+                              <table className="w-full text-sm border-collapse border border-slate-800 print:text-xs">
+                                 ...
+                              </table>
+                          </div>
+                      ) : (
+                          <div className="overflow-x-auto">
+                              {/* TABEL LAMA ANDA (BARIS 3197 KE BAWAH) BERADA DI SINI */}
+                              <table className="w-full text-left border-collapse border border-slate-800 text-sm">
+                                 ...
+                              </table>
+                          </div>
+                      )}
                          </tr></thead>
                          <tbody>
                            {processedResults.map((r, i) => {
