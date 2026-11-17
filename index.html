@@ -3020,6 +3020,10 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              const [sortOrder, setSortOrder] = useState('DEFAULT');
              const [activeTab, setActiveTab] = useState('NILAI');
              
+             // State baru untuk Dropdown Pilihan Mapel Ranking
+             const [rankMathFolder, setRankMathFolder] = useState('');
+             const [rankIndoFolder, setRankIndoFolder] = useState('');
+             
              const getResultFolder = (r) => {
                  const firstQId = r.detail?.detailedResults?.find(x => x.qId !== 'SYS_CHEATS')?.qId;
                  if (!firstQId) return 'Utama';
@@ -3029,6 +3033,15 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
 
              const schoolList = ['Semua', ...new Set(results.map(r => r.participant?.school).filter(Boolean))];
              const folderList = ['Semua', ...new Set(results.map(getResultFolder))];
+             const mapelList = folderList.filter(f => f !== 'Semua');
+
+             // Set default dropdown saat data siap
+             React.useEffect(() => {
+                 if (mapelList.length > 0) {
+                     if (!rankMathFolder) setRankMathFolder(mapelList.find(f => f.toLowerCase().includes('matematika')) || mapelList[0]);
+                     if (!rankIndoFolder) setRankIndoFolder(mapelList.find(f => f.toLowerCase().includes('bahasa')) || mapelList[1] || mapelList[0]);
+                 }
+             }, [folderList.length]);
              
              let processedResults = results.filter(r => {
                  const matchSchool = filterSchool === 'Semua' || r.participant?.school === filterSchool;
@@ -3050,11 +3063,8 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              const variance = validCount > 0 ? (scores.reduce((a,b) => a + Math.pow(b - meanScore, 2), 0) / validCount) : 0;
              const stdDeviation = Math.sqrt(variance);
 
-             // --- ALGORITMA RANKING SEKOLAH (ANTI-CRASH MUTLAK) ---
-             let mathMapel = 'Matematika';
-             let indoMapel = 'Bahasa Indonesia';
+             // --- ALGORITMA RANKING SEKOLAH (DIPERBAIKI DENGAN FUNGSI PELACAK FOLDER) ---
              let rawData = [];
-
              try {
                  if (typeof results !== 'undefined' && Array.isArray(results)) {
                      rawData = results;
@@ -3062,11 +3072,6 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                      rawData = processedResults;
                  }
              } catch(e) {}
-
-             rawData.forEach(r => {
-                 if (r.folder && r.folder.toLowerCase().includes('matematika')) mathMapel = r.folder;
-                 if (r.folder && r.folder.toLowerCase().includes('bahasa')) indoMapel = r.folder;
-             });
 
              const schoolRanking = [];
              if (activeTab === 'RANKING') {
@@ -3077,8 +3082,11 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                      
                      sData[sch].students.add((r.participant?.name || '').trim().toUpperCase());
                      
-                     if (r.folder === mathMapel) { sData[sch].mathTotal += (Number(r.score) || 0); sData[sch].mathCount += 1; }
-                     if (r.folder === indoMapel) { sData[sch].indoTotal += (Number(r.score) || 0); sData[sch].indoCount += 1; }
+                     // Menggunakan fungsi pelacak untuk mendapatkan nama folder aktual dari database Soal
+                     const rFolder = getResultFolder(r);
+                     
+                     if (rFolder === rankMathFolder) { sData[sch].mathTotal += (Number(r.score) || 0); sData[sch].mathCount += 1; }
+                     if (rFolder === rankIndoFolder) { sData[sch].indoTotal += (Number(r.score) || 0); sData[sch].indoCount += 1; }
                  });
 
                  Object.values(sData).forEach(sd => {
@@ -3107,9 +3115,24 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                              </select>
                              <div className="w-px h-6 bg-slate-300"></div>
                              
-                             <select value={filterFolder} onChange={e=>setFilterFolder(e.target.value)} className="border-none bg-transparent p-2 text-sm font-semibold outline-none cursor-pointer text-blue-700">
-                                 {folderList.map(f => <option key={f} value={f}>{f === 'Semua' ? 'Kategori: Semua' : f}</option>)}
-                             </select>
+                             {activeTab === 'RANKING' ? (
+                                <>
+                                   {/* Pilihan Folder Khusus Ranking */}
+                                   <select value={rankMathFolder} onChange={e=>setRankMathFolder(e.target.value)} className="border-none bg-transparent p-2 text-sm font-bold outline-none cursor-pointer text-blue-700 max-w-[200px] truncate" title="Pilih Folder Matematika">
+                                      <option value="">Pilih Mapel 1</option>
+                                      {mapelList.map(f => <option key={f} value={f}>{f}</option>)}
+                                   </select>
+                                   <div className="w-px h-6 bg-slate-300"></div>
+                                   <select value={rankIndoFolder} onChange={e=>setRankIndoFolder(e.target.value)} className="border-none bg-transparent p-2 text-sm font-bold outline-none cursor-pointer text-indigo-700 max-w-[200px] truncate" title="Pilih Folder Bahasa Indonesia">
+                                      <option value="">Pilih Mapel 2</option>
+                                      {mapelList.map(f => <option key={f} value={f}>{f}</option>)}
+                                   </select>
+                                </>
+                             ) : (
+                                <select value={filterFolder} onChange={e=>setFilterFolder(e.target.value)} className="border-none bg-transparent p-2 text-sm font-semibold outline-none cursor-pointer text-blue-700">
+                                    {folderList.map(f => <option key={f} value={f}>{f === 'Semua' ? 'Kategori: Semua' : f}</option>)}
+                                </select>
+                             )}
                          </div>
                          
                          <select value={sortOrder} onChange={e=>setSortOrder(e.target.value)} className="border border-slate-300 rounded-lg p-2.5 text-sm bg-white font-semibold outline-none cursor-pointer">
@@ -3187,8 +3210,8 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                        <th className="border-r border-slate-800 py-3 px-3 w-12 text-center">No</th>
                                        <th className="border-r border-slate-800 py-3 px-3 text-left">Nama Sekolah</th>
                                        <th className="border-r border-slate-800 py-3 px-3 w-24 text-center">Jml Siswa</th>
-                                       <th className="border-r border-slate-800 py-3 px-3 text-center">{mathMapel}</th>
-                                       <th className="border-r border-slate-800 py-3 px-3 text-center">{indoMapel}</th>
+                                       <th className="border-r border-slate-800 py-3 px-3 text-center text-blue-800">{rankMathFolder || 'Mapel 1'}</th>
+                                       <th className="border-r border-slate-800 py-3 px-3 text-center text-indigo-800">{rankIndoFolder || 'Mapel 2'}</th>
                                        <th className="py-3 px-3 bg-emerald-200 text-center">Rata-Rata Total</th>
                                     </tr>
                                  </thead>
@@ -3252,7 +3275,6 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                           </div>
                       )}
                       
-                      {/* Bagian Tanda Tangan */}
                       <div className="mt-16 flex justify-end text-center text-slate-800 font-medium text-sm">
                          <div>
                             <p className="mb-20">Mengetahui,<br/>Admin TKA Kec. Wonosobo</p>
