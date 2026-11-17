@@ -1206,7 +1206,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              const [sortOrder, setSortOrder] = useState('DEFAULT');
              const [selectedFile, setSelectedFile] = useState(null);
 
-             const actualTokens = tokens.filter(t => !t.code.startsWith('SYS_SETTING_') && !t.code.startsWith('SYS_FOLDER_'));
+             const actualTokens = tokens.filter(t => !t.code.startsWith('SYS_SETTING_') && !t.code.startsWith('SYS_FOLDER_') && !t.code.startsWith('SEC_CFG_'));
              const uniqueClasses = [...new Set(actualTokens.map(t => t.participant_school).filter(Boolean))];
              const uniqueEditClasses = [...new Set(massEditTokens.map(t => t.participant_school).filter(Boolean))];
 
