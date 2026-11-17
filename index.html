@@ -3050,10 +3050,14 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              const variance = validCount > 0 ? (scores.reduce((a,b) => a + Math.pow(b - meanScore, 2), 0) / validCount) : 0;
              const stdDeviation = Math.sqrt(variance);
 
-             // --- ALGORITMA RANKING SEKOLAH ---
+             // --- ALGORITMA RANKING SEKOLAH (VERSI ANTI-CRASH) ---
     let mathMapel = 'Matematika';
     let indoMapel = 'Bahasa Indonesia';
-    results.forEach(r => {
+    
+    // LAPISAN KEAMANAN: Jika 'results' belum ada nilainya, gunakan array kosong []
+    const safeResults = results || [];
+    
+    safeResults.forEach(r => {
         if (r.folder && r.folder.toLowerCase().includes('matematika')) mathMapel = r.folder;
         if (r.folder && r.folder.toLowerCase().includes('bahasa')) indoMapel = r.folder;
     });
@@ -3061,15 +3065,14 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
     const schoolRanking = [];
     if (activeTab === 'RANKING') {
         const sData = {};
-        // Gunakan seluruh raw results agar semua sekolah terhitung tanpa terpengaruh dropdown filter saat ini
-        results.forEach(r => {
+        safeResults.forEach(r => {
             const sch = (r.participant?.school || 'Tidak Diketahui').trim().toUpperCase();
             if (!sData[sch]) sData[sch] = { name: sch, students: new Set(), mathTotal: 0, mathCount: 0, indoTotal: 0, indoCount: 0 };
             
             sData[sch].students.add((r.participant?.name || '').trim().toUpperCase());
             
-            if (r.folder === mathMapel) { sData[sch].mathTotal += (r.score || 0); sData[sch].mathCount += 1; }
-            if (r.folder === indoMapel) { sData[sch].indoTotal += (r.score || 0); sData[sch].indoCount += 1; }
+            if (r.folder === mathMapel) { sData[sch].mathTotal += (Number(r.score) || 0); sData[sch].mathCount += 1; }
+            if (r.folder === indoMapel) { sData[sch].indoTotal += (Number(r.score) || 0); sData[sch].indoCount += 1; }
         });
 
         Object.values(sData).forEach(sd => {
@@ -3078,7 +3081,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
             const totalAvg = (mathAvg + indoAvg) / 2; 
             schoolRanking.push({ school: sd.name, studentCount: sd.students.size, mathAvg, indoAvg, totalAvg });
         });
-        // Urutkan dari rata-rata total tertinggi ke terendah
+        
         schoolRanking.sort((a, b) => b.totalAvg - a.totalAvg);
     }
               return (
