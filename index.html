@@ -3037,8 +3037,6 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              
              const [rankMathFolder, setRankMathFolder] = useState('');
              const [rankIndoFolder, setRankIndoFolder] = useState('');
-             
-             // State baru untuk Cekboks Filter Mapel di Progress
              const [selectedProgressMapels, setSelectedProgressMapels] = useState([]);
              
              const getResultFolder = (r) => {
@@ -3050,22 +3048,17 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
 
              const schoolList = ['Semua', ...new Set(results.map(r => r.participant?.school).filter(Boolean))];
              const folderList = ['Semua', ...new Set(results.map(getResultFolder))];
-             
-             // Urutkan mapel secara logis (TO 1, TO 2, dst)
              const mapelList = folderList.filter(f => f !== 'Semua').sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
 
              React.useEffect(() => {
                  if (mapelList.length > 0) {
                      if (!rankMathFolder) setRankMathFolder(mapelList.find(f => f.toLowerCase().includes('matematika')) || mapelList[0]);
                      if (!rankIndoFolder) setRankIndoFolder(mapelList.find(f => f.toLowerCase().includes('bahasa')) || mapelList[1] || mapelList[0]);
-                     // Centang semua mapel secara default saat pertama kali dimuat
                      if (selectedProgressMapels.length === 0) setSelectedProgressMapels(mapelList);
                  }
              }, [folderList.length]);
 
-             const toggleProgressMapel = (m) => {
-                 setSelectedProgressMapels(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]);
-             };
+             const toggleProgressMapel = (m) => setSelectedProgressMapels(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]);
              
              let processedResults = results.filter(r => {
                  const matchSchool = filterSchool === 'Semua' || r.participant?.school === filterSchool;
@@ -3073,20 +3066,14 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                  return matchSchool && matchFolder;
              });
              
-             if (sortOrder === 'RANK_DESC') {
-                 processedResults.sort((a, b) => b.score - a.score);
-             } else if (sortOrder === 'RANK_ASC') {
-                 processedResults.sort((a, b) => a.score - b.score);
-             } else if (sortOrder === 'NAME_ASC') {
-                 processedResults.sort((a, b) => (a.participant?.name || '').localeCompare(b.participant?.name || ''));
-             }
+             if (sortOrder === 'RANK_DESC') processedResults.sort((a, b) => b.score - a.score);
+             else if (sortOrder === 'RANK_ASC') processedResults.sort((a, b) => a.score - b.score);
+             else if (sortOrder === 'NAME_ASC') processedResults.sort((a, b) => (a.participant?.name || '').localeCompare(b.participant?.name || ''));
 
-             // STATISTIK TAB NILAI BIASA
              const scores = processedResults.map(r => r.score);
              const validCount = scores.length;
              const meanScore = validCount > 0 ? (scores.reduce((a,b) => a + b, 0) / validCount) : 0;
-             const variance = validCount > 0 ? (scores.reduce((a,b) => a + Math.pow(b - meanScore, 2), 0) / validCount) : 0;
-             const stdDeviation = Math.sqrt(variance);
+             const stdDeviation = Math.sqrt(validCount > 0 ? (scores.reduce((a,b) => a + Math.pow(b - meanScore, 2), 0) / validCount) : 0);
 
              let rawData = [];
              try {
@@ -3094,43 +3081,63 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                  else if (typeof processedResults !== 'undefined' && Array.isArray(processedResults)) rawData = processedResults;
              } catch(e) {}
 
-             // --- ALGORITMA TAB RANKING SEKOLAH ---
+             // --- ALGORITMA TAB RANKING (OTOMATIS BERUBAH JADI RANKING ANAK JIKA FILTER SEKOLAH AKTIF) ---
              const schoolRanking = [];
+             const studentRanking = [];
              let gMathTotal = 0, gMathCount = 0, gIndoTotal = 0, gIndoCount = 0;
 
              if (activeTab === 'RANKING') {
-                 const sData = {};
-                 rawData.forEach(r => {
-                     const schRaw = (r.participant?.school || 'Tidak Diketahui').trim();
-                     const sch = schRaw.toUpperCase();
-                     if (filterSchool !== 'Semua' && schRaw !== filterSchool) return;
-
-                     if (!sData[sch]) sData[sch] = { name: sch, students: new Set(), mathTotal: 0, mathCount: 0, indoTotal: 0, indoCount: 0 };
-                     sData[sch].students.add((r.participant?.name || '').trim().toUpperCase());
-                     
-                     const rFolder = getResultFolder(r);
-                     if (rFolder === rankMathFolder) { sData[sch].mathTotal += (Number(r.score) || 0); sData[sch].mathCount += 1; gMathTotal += (Number(r.score) || 0); gMathCount += 1; }
-                     if (rFolder === rankIndoFolder) { sData[sch].indoTotal += (Number(r.score) || 0); sData[sch].indoCount += 1; gIndoTotal += (Number(r.score) || 0); gIndoCount += 1; }
-                 });
-
-                 Object.values(sData).forEach(sd => {
-                     if (sd.mathCount > 0 || sd.indoCount > 0) {
-                         const mathAvg = sd.mathCount > 0 ? (sd.mathTotal / sd.mathCount) : 0;
-                         const indoAvg = sd.indoCount > 0 ? (sd.indoTotal / sd.indoCount) : 0;
-                         schoolRanking.push({ school: sd.name, studentCount: sd.students.size, mathAvg, indoAvg, totalAvg: (mathAvg + indoAvg) / 2 });
-                     }
-                 });
-                 schoolRanking.sort((a, b) => b.totalAvg - a.totalAvg);
+                 if (filterSchool === 'Semua') {
+                     const sData = {};
+                     rawData.forEach(r => {
+                         const schRaw = (r.participant?.school || 'Tidak Diketahui').trim();
+                         const sch = schRaw.toUpperCase();
+                         if (!sData[sch]) sData[sch] = { name: sch, students: new Set(), mathTotal: 0, mathCount: 0, indoTotal: 0, indoCount: 0 };
+                         sData[sch].students.add((r.participant?.name || '').trim().toUpperCase());
+                         
+                         const rFolder = getResultFolder(r);
+                         if (rFolder === rankMathFolder) { sData[sch].mathTotal += (Number(r.score) || 0); sData[sch].mathCount += 1; gMathTotal += (Number(r.score) || 0); gMathCount += 1; }
+                         if (rFolder === rankIndoFolder) { sData[sch].indoTotal += (Number(r.score) || 0); sData[sch].indoCount += 1; gIndoTotal += (Number(r.score) || 0); gIndoCount += 1; }
+                     });
+                     Object.values(sData).forEach(sd => {
+                         if (sd.mathCount > 0 || sd.indoCount > 0) {
+                             schoolRanking.push({ school: sd.name, studentCount: sd.students.size, mathAvg: sd.mathCount > 0 ? (sd.mathTotal / sd.mathCount) : 0, indoAvg: sd.indoCount > 0 ? (sd.indoTotal / sd.indoCount) : 0, totalAvg: ((sd.mathCount > 0 ? (sd.mathTotal / sd.mathCount) : 0) + (sd.indoCount > 0 ? (sd.indoTotal / sd.indoCount) : 0)) / 2 });
+                         }
+                     });
+                     schoolRanking.sort((a, b) => b.totalAvg - a.totalAvg);
+                 } else {
+                     const stuData = {};
+                     rawData.forEach(r => {
+                         const schRaw = (r.participant?.school || '').trim();
+                         if (schRaw !== filterSchool) return;
+                         
+                         const stuName = (r.participant?.name || 'Anonim').trim().toUpperCase();
+                         if (!stuData[stuName]) stuData[stuName] = { name: stuName, mathScore: null, indoScore: null };
+                         
+                         const rFolder = getResultFolder(r);
+                         if (rFolder === rankMathFolder) { stuData[stuName].mathScore = Number(r.score) || 0; gMathTotal += (Number(r.score) || 0); gMathCount += 1; }
+                         if (rFolder === rankIndoFolder) { stuData[stuName].indoScore = Number(r.score) || 0; gIndoTotal += (Number(r.score) || 0); gIndoCount += 1; }
+                     });
+                     Object.values(stuData).forEach(sd => {
+                         let sum = 0, cnt = 0;
+                         if (sd.mathScore !== null) { sum += sd.mathScore; cnt++; }
+                         if (sd.indoScore !== null) { sum += sd.indoScore; cnt++; }
+                         if (cnt > 0) studentRanking.push({ name: sd.name, mathScore: sd.mathScore, indoScore: sd.indoScore, totalAvg: sum / cnt });
+                     });
+                     studentRanking.sort((a, b) => b.totalAvg - a.totalAvg);
+                 }
              }
 
              const globalMathAvg = gMathCount > 0 ? (gMathTotal / gMathCount) : 0;
              const globalIndoAvg = gIndoCount > 0 ? (gIndoTotal / gIndoCount) : 0;
              const globalTotalAvg = (globalMathAvg + globalIndoAvg) / 2;
-             const validRankingCount = schoolRanking.length;
-             const meanOfSchoolAvgs = validRankingCount > 0 ? (schoolRanking.reduce((a, b) => a + b.totalAvg, 0) / validRankingCount) : 0;
-             const stdDevRanking = Math.sqrt(validRankingCount > 0 ? (schoolRanking.reduce((a, b) => a + Math.pow(b.totalAvg - meanOfSchoolAvgs, 2), 0) / validRankingCount) : 0);
+             
+             const validRankingCount = filterSchool === 'Semua' ? schoolRanking.length : studentRanking.length;
+             const activeRankingArray = filterSchool === 'Semua' ? schoolRanking : studentRanking;
+             const meanOfAvgs = validRankingCount > 0 ? (activeRankingArray.reduce((a, b) => a + b.totalAvg, 0) / validRankingCount) : 0;
+             const stdDevRanking = Math.sqrt(validRankingCount > 0 ? (activeRankingArray.reduce((a, b) => a + Math.pow(b.totalAvg - meanOfAvgs, 2), 0) / validRankingCount) : 0);
 
-             // --- ALGORITMA TAB PERKEMBANGAN (UPDATE DINAMIS BERDASARKAN CEKBOKS) ---
+             // --- ALGORITMA TAB PERKEMBANGAN ---
              const schoolProgress = {};
              const globalProgress = {};
              selectedProgressMapels.forEach(m => globalProgress[m] = { total: 0, count: 0 });
@@ -3139,21 +3146,10 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                  const sch = (r.participant?.school || 'Tidak Diketahui').trim().toUpperCase();
                  const folder = getResultFolder(r);
                  const score = Number(r.score) || 0;
-                 
-                 // Hanya hitung folder/mapel yang dicentang oleh user
                  if (selectedProgressMapels.includes(folder)) {
-                     if (!schoolProgress[sch]) {
-                         schoolProgress[sch] = { name: sch };
-                         selectedProgressMapels.forEach(m => schoolProgress[sch][m] = { total: 0, count: 0 });
-                     }
-                     if (schoolProgress[sch][folder]) {
-                         schoolProgress[sch][folder].total += score;
-                         schoolProgress[sch][folder].count += 1;
-                     }
-                     if (globalProgress[folder]) {
-                         globalProgress[folder].total += score;
-                         globalProgress[folder].count += 1;
-                     }
+                     if (!schoolProgress[sch]) { schoolProgress[sch] = { name: sch }; selectedProgressMapels.forEach(m => schoolProgress[sch][m] = { total: 0, count: 0 }); }
+                     if (schoolProgress[sch][folder]) { schoolProgress[sch][folder].total += score; schoolProgress[sch][folder].count += 1; }
+                     if (globalProgress[folder]) { globalProgress[folder].total += score; globalProgress[folder].count += 1; }
                  }
              });
 
@@ -3161,8 +3157,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                  const row = { school: sd.name };
                  let totalAvg = 0, validFolders = 0;
                  selectedProgressMapels.forEach(m => {
-                     if (sd[m].count > 0) { row[m] = sd[m].total / sd[m].count; totalAvg += row[m]; validFolders++; } 
-                     else { row[m] = null; }
+                     if (sd[m].count > 0) { row[m] = sd[m].total / sd[m].count; totalAvg += row[m]; validFolders++; } else row[m] = null;
                  });
                  row.overallAvg = validFolders > 0 ? totalAvg / validFolders : 0;
                  return row;
@@ -3175,15 +3170,11 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              const globalAverages = {};
              let gTotalAvg = 0, gValidFolders = 0;
              selectedProgressMapels.forEach(m => {
-                 if (globalProgress[m].count > 0) { globalAverages[m] = globalProgress[m].total / globalProgress[m].count; gTotalAvg += globalAverages[m]; gValidFolders++; } 
-                 else { globalAverages[m] = null; }
+                 if (globalProgress[m].count > 0) { globalAverages[m] = globalProgress[m].total / globalProgress[m].count; gTotalAvg += globalAverages[m]; gValidFolders++; } else globalAverages[m] = null;
              });
              globalAverages.overallAvg = gValidFolders > 0 ? gTotalAvg / gValidFolders : 0;
 
-             // Header Dinamis
-             const reportTitle = activeTab === 'NILAI' ? 'Laporan Try Out TKA-1' : 
-                                 activeTab === 'PELANGGARAN' ? 'Laporan Deteksi Pelanggaran' : 
-                                 activeTab === 'RANKING' ? 'Laporan Ranking Sekolah' : 'Laporan Perkembangan Nilai';
+             const reportTitle = activeTab === 'NILAI' ? 'Laporan Try Out TKA-1' : activeTab === 'PELANGGARAN' ? 'Laporan Deteksi Pelanggaran' : activeTab === 'RANKING' ? 'Laporan Ranking' : 'Laporan Perkembangan Nilai';
 
              return (
                 <AdminLayout title="Cetak Laporan Dokumen (F4)">
@@ -3191,7 +3182,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                       <div className="flex gap-2 bg-slate-100 p-1.5 rounded-lg w-full xl:w-auto shrink-0 overflow-x-auto">
                           <button onClick={() => setActiveTab('NILAI')} className={`px-4 py-2 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'NILAI' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Rekap Nilai</button>
                           <button onClick={() => setActiveTab('PELANGGARAN')} className={`px-4 py-2 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'PELANGGARAN' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Pelanggaran</button>
-                          <button onClick={() => setActiveTab('RANKING')} className={`px-4 py-2 text-sm font-bold rounded-md transition-colors whitespace-nowrap ${activeTab === 'RANKING' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>Ranking Sekolah</button>
+                          <button onClick={() => setActiveTab('RANKING')} className={`px-4 py-2 text-sm font-bold rounded-md transition-colors whitespace-nowrap ${activeTab === 'RANKING' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>Ranking</button>
                           <button onClick={() => setActiveTab('PERKEMBANGAN')} className={`px-4 py-2 text-sm font-bold rounded-md transition-colors whitespace-nowrap ${activeTab === 'PERKEMBANGAN' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}>Progress Nilai</button>
                       </div>
                       
@@ -3250,21 +3241,17 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                          <p className="text-slate-600 font-medium">{organizerName}</p>
                       </div>
                       
-                      {/* DESAIN KOTAK KETERANGAN (HEADER LAPORAN) YANG SUDAH DISERAGAMKAN */}
                       <div className="mb-8 bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-                         
-                         {/* Baris Atas: Menampilkan Sekolah */}
                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                              <div>
                                  <p className="text-slate-500 text-[10px] font-bold uppercase mb-1">Sekolah / Kelas</p>
                                  <p className="font-black text-blue-900 text-lg">{filterSchool}</p>
                              </div>
                              
-                             {/* Kotak Putih Kanan (Tergantung Tab Aktif) */}
                              {activeTab === 'RANKING' ? (
                                  <div className="bg-white px-4 py-3 rounded-lg border border-slate-200 shadow-sm min-w-[150px] text-center sm:text-right">
-                                     <p className="text-slate-500 text-[10px] font-bold uppercase mb-1">Total Sekolah Terdata</p>
-                                     <p className="font-black text-slate-800 text-base">{validRankingCount} Institusi</p>
+                                     <p className="text-slate-500 text-[10px] font-bold uppercase mb-1">{filterSchool === 'Semua' ? 'Total Sekolah Terdata' : 'Total Anak Terdata'}</p>
+                                     <p className="font-black text-slate-800 text-base">{validRankingCount} {filterSchool === 'Semua' ? 'Institusi' : 'Siswa'}</p>
                                  </div>
                              ) : (activeTab === 'NILAI' || activeTab === 'PELANGGARAN') ? (
                                  <div className="bg-white px-4 py-3 rounded-lg border border-slate-200 shadow-sm min-w-[150px] text-center sm:text-right">
@@ -3274,7 +3261,6 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                              ) : null}
                          </div>
                          
-                         {/* Baris Bawah: Kotak-kotak (Cards) Statistik */}
                          {activeTab === 'RANKING' ? (
                             <div className="grid gap-4 text-sm grid-cols-2 md:grid-cols-4 mt-5 pt-5 border-t border-slate-200">
                                 <div className="bg-white p-4 rounded-xl border border-blue-100 shadow-sm flex flex-col justify-between"><p className="text-slate-500 text-[10px] font-bold uppercase mb-2 leading-relaxed break-words">Rata-Rata<br/>{rankMathFolder || 'Mapel 1'}</p><p className="font-black text-blue-700 text-xl">{globalMathAvg.toFixed(2)}</p></div>
@@ -3316,7 +3302,6 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                          )}
                       </div>
 
-                      {/* GRAFIK GLOBAL KECAMATAN (MUNCUL JIKA DIPILIH SEMUA SEKOLAH) */}
                       {activeTab === 'PERKEMBANGAN' && filterSchool === 'Semua' && selectedProgressMapels.length > 0 && (
                           <div className="mb-8 p-6 bg-white border border-slate-200 rounded-xl shadow-sm print:break-inside-avoid">
                               <h3 className="font-bold text-slate-800 mb-6 border-b border-slate-100 pb-3 flex items-center"><i className="fas fa-chart-bar mr-2 text-blue-600"></i> Grafik Rata-Rata Global Kecamatan</h3>
@@ -3343,27 +3328,39 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                           <div className="overflow-x-auto">
                               <table className="w-full text-sm border-collapse border border-slate-800 print:text-xs">
                                  <thead>
-                                    <tr className="bg-slate-200 border-b border-slate-800">
+                                    <tr className="bg-slate-200 border-b border-slate-800 text-slate-800">
                                        <th className="border-r border-slate-800 py-3 px-3 w-12 text-center">No</th>
-                                       <th className="border-r border-slate-800 py-3 px-3 text-left">Nama Sekolah</th>
-                                       <th className="border-r border-slate-800 py-3 px-3 w-24 text-center">Jml Siswa</th>
+                                       <th className="border-r border-slate-800 py-3 px-3 text-left">{filterSchool === 'Semua' ? 'Nama Sekolah' : 'Nama Anak (Siswa)'}</th>
+                                       {filterSchool === 'Semua' && <th className="border-r border-slate-800 py-3 px-3 w-24 text-center">Jml Siswa</th>}
                                        <th className="border-r border-slate-800 py-3 px-3 text-center text-blue-800">{rankMathFolder || 'Mapel 1'}</th>
                                        <th className="border-r border-slate-800 py-3 px-3 text-center text-indigo-800">{rankIndoFolder || 'Mapel 2'}</th>
                                        <th className="py-3 px-3 bg-emerald-200 text-center">Rata-Rata Total</th>
                                     </tr>
                                  </thead>
                                  <tbody>
-                                    {schoolRanking.map((sr, i) => (
-                                       <tr key={i} className="border-b border-slate-800 font-medium hover:bg-slate-50">
-                                          <td className="border-r border-slate-800 py-2.5 px-3 text-center">{i+1}</td>
-                                          <td className="border-r border-slate-800 py-2.5 px-3 uppercase">{sr.school}</td>
-                                          <td className="border-r border-slate-800 py-2.5 px-3 text-center">{sr.studentCount}</td>
-                                          <td className="border-r border-slate-800 py-2.5 px-3 text-center font-bold text-blue-700">{sr.mathAvg.toFixed(2)}</td>
-                                          <td className="border-r border-slate-800 py-2.5 px-3 text-center font-bold text-indigo-700">{sr.indoAvg.toFixed(2)}</td>
-                                          <td className="py-2.5 px-3 text-center font-black text-emerald-800 bg-emerald-50 print:bg-transparent">{sr.totalAvg.toFixed(2)}</td>
-                                       </tr>
-                                    ))}
-                                    {schoolRanking.length === 0 && <tr><td colSpan="6" className="text-center py-10 italic text-slate-500">Belum ada data nilai sekolah yang terkumpul.</td></tr>}
+                                    {filterSchool === 'Semua' ? (
+                                       schoolRanking.map((sr, i) => (
+                                          <tr key={i} className="border-b border-slate-800 font-medium hover:bg-slate-50">
+                                             <td className="border-r border-slate-800 py-2.5 px-3 text-center">{i+1}</td>
+                                             <td className="border-r border-slate-800 py-2.5 px-3 uppercase text-slate-800">{sr.school}</td>
+                                             <td className="border-r border-slate-800 py-2.5 px-3 text-center">{sr.studentCount}</td>
+                                             <td className="border-r border-slate-800 py-2.5 px-3 text-center font-bold text-blue-700">{sr.mathAvg.toFixed(2)}</td>
+                                             <td className="border-r border-slate-800 py-2.5 px-3 text-center font-bold text-indigo-700">{sr.indoAvg.toFixed(2)}</td>
+                                             <td className="py-2.5 px-3 text-center font-black text-emerald-800 bg-emerald-50 print:bg-transparent">{sr.totalAvg.toFixed(2)}</td>
+                                          </tr>
+                                       ))
+                                    ) : (
+                                       studentRanking.map((sr, i) => (
+                                          <tr key={i} className="border-b border-slate-800 font-medium hover:bg-slate-50">
+                                             <td className="border-r border-slate-800 py-2.5 px-3 text-center">{i+1}</td>
+                                             <td className="border-r border-slate-800 py-2.5 px-3 uppercase text-slate-800">{sr.name}</td>
+                                             <td className="border-r border-slate-800 py-2.5 px-3 text-center font-bold text-blue-700">{sr.mathScore !== null ? sr.mathScore : '-'}</td>
+                                             <td className="border-r border-slate-800 py-2.5 px-3 text-center font-bold text-indigo-700">{sr.indoScore !== null ? sr.indoScore : '-'}</td>
+                                             <td className="py-2.5 px-3 text-center font-black text-emerald-800 bg-emerald-50 print:bg-transparent">{sr.totalAvg.toFixed(2)}</td>
+                                          </tr>
+                                       ))
+                                    )}
+                                    {(filterSchool === 'Semua' ? schoolRanking : studentRanking).length === 0 && <tr><td colSpan={filterSchool === 'Semua' ? 6 : 5} className="text-center py-10 italic text-slate-500">Belum ada data untuk ditampilkan.</td></tr>}
                                  </tbody>
                               </table>
                           </div>
@@ -3377,7 +3374,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                               ) : filterSchool === 'Semua' ? (
                                   <table className="w-full text-sm border-collapse border border-slate-800 print:text-[10px]">
                                       <thead>
-                                          <tr className="bg-slate-200 border-b border-slate-800">
+                                          <tr className="bg-slate-200 border-b border-slate-800 text-slate-800">
                                               <th className="border-r border-slate-800 py-3 px-3 w-12 text-center">No</th>
                                               <th className="border-r border-slate-800 py-3 px-3 text-left">Nama Sekolah</th>
                                               {selectedProgressMapels.map(m => (
@@ -3385,7 +3382,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                                       <span className="line-clamp-2 leading-tight">{m}</span>
                                                   </th>
                                               ))}
-                                              <th className="py-3 px-3 bg-blue-100 text-center">Rata-Rata Total</th>
+                                              <th className="py-3 px-3 bg-blue-200 text-center">Rata-Rata Total</th>
                                           </tr>
                                       </thead>
                                       <tbody>
@@ -3459,16 +3456,26 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                           </div>
                       ) : (
                           <div className="overflow-x-auto">
-                              <table className="w-full text-left border-collapse border border-slate-800 text-sm">
-                                  <thead className="bg-slate-100 uppercase font-bold text-xs">
-                                      <tr className="border-b border-slate-800">
-                                          <th className="border-r border-slate-800 py-2.5 px-3 text-center w-12">No</th>
-                                          <th className="border-r border-slate-800 py-2.5 px-3">Nama Peserta</th>
-                                          <th className="border-r border-slate-800 py-2.5 px-3">Asal Sekolah</th>
+                              <table className="w-full text-sm border-collapse border border-slate-800 print:text-xs">
+                                  <thead>
+                                      <tr className="bg-slate-200 border-b border-slate-800 text-slate-800">
+                                          <th className="border-r border-slate-800 py-3 px-3 text-center w-12">No</th>
+                                          <th className="border-r border-slate-800 py-3 px-3 text-left">Nama Peserta</th>
+                                          
+                                          {filterSchool === 'Semua' && (
+                                              <th className="border-r border-slate-800 py-3 px-3 text-left">Asal Sekolah</th>
+                                          )}
+                                          
                                           {activeTab === 'NILAI' ? (
-                                              <><th className="border-r border-slate-800 py-2.5 px-3 text-center w-28">Durasi</th><th className="py-2.5 px-3 text-center w-24">Skor</th></>
+                                              <>
+                                                  <th className="border-r border-slate-800 py-3 px-3 text-center w-28">Durasi</th>
+                                                  <th className="py-3 px-3 text-center w-24">Skor</th>
+                                              </>
                                           ) : (
-                                              <><th className="border-r border-slate-800 py-2.5 px-3 text-center w-28">Status Keamanan</th><th className="py-2.5 px-3 text-center w-24">Aksi</th></>
+                                              <>
+                                                  <th className="border-r border-slate-800 py-3 px-3 text-center w-36">Status Keamanan</th>
+                                                  <th className="py-3 px-3 text-center">Aksi (Pelanggaran)</th>
+                                              </>
                                           )}
                                       </tr>
                                   </thead>
@@ -3482,21 +3489,32 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                           const isDuplicate = processedResults.filter(pr => (pr.participant?.name || '').trim().toUpperCase() === rawName).length > 1;
                                           
                                           return (
-                                          <tr key={i} className={`border-b border-slate-800 font-medium ${isDuplicate ? 'bg-rose-50' : ''}`}>
+                                          <tr key={i} className={`border-b border-slate-800 font-medium ${isDuplicate ? 'bg-rose-50' : 'hover:bg-slate-50'}`}>
                                              <td className="border-r border-slate-800 py-2.5 px-3 text-center">{i+1}</td>
-                                             <td className="border-r border-slate-800 py-2.5 px-3 uppercase">
-                                                <span className={isDuplicate ? 'text-rose-700 font-bold' : ''}>{rawName}</span>
+                                             
+                                             <td className="border-r border-slate-800 py-2.5 px-3 uppercase text-slate-800">
+                                                {rawName}
                                                 {isDuplicate && <span className="ml-2 text-[9px] bg-rose-600 text-white px-1.5 py-0.5 rounded font-bold print:border print:border-rose-600 print:text-rose-600 print:bg-transparent">GANDA</span>}
                                              </td>
-                                             <td className="border-r border-slate-800 py-2.5 px-3">{r.participant?.school}</td>
+                                             
+                                             {filterSchool === 'Semua' && (
+                                                <td className="border-r border-slate-800 py-2.5 px-3 text-slate-700">{r.participant?.school}</td>
+                                             )}
+                                             
                                              {activeTab === 'NILAI' ? (
-                                                 <><td className="border-r border-slate-800 py-2.5 px-3 text-center text-xs">{`${Math.floor(durSecs/60)}m ${durSecs%60}s`}</td><td className={`py-2.5 px-3 text-center font-bold ${isDuplicate ? 'text-rose-700 bg-rose-100/50' : 'text-blue-700 bg-blue-50/30'}`}>{r.score}</td></>
+                                                 <>
+                                                    <td className="border-r border-slate-800 py-2.5 px-3 text-center text-xs text-slate-600">{`${Math.floor(durSecs/60)}m ${durSecs%60}s`}</td>
+                                                    <td className={`py-2.5 px-3 text-center font-bold ${isDuplicate ? 'text-rose-700 bg-rose-100/50' : 'text-blue-700 bg-blue-50/30'}`}>{r.score}</td>
+                                                 </>
                                              ) : (
-                                                 <><td className="border-r border-slate-800 py-2.5 px-3 text-center">{cheats === 0 ? <span className="text-emerald-600 font-bold">AMAN</span> : <span className="text-rose-600 font-bold">TERDETEKSI</span>}</td><td className="py-2.5 px-3 text-center font-bold">{cheats === 0 ? '-' : <span className="text-rose-600">{cheats}x Pindah Tab</span>}</td></>
+                                                 <>
+                                                    <td className="border-r border-slate-800 py-2.5 px-3 text-center">{cheats === 0 ? <span className="text-emerald-600 font-bold">AMAN</span> : <span className="text-rose-600 font-bold">TERDETEKSI</span>}</td>
+                                                    <td className="py-2.5 px-3 text-center font-bold">{cheats === 0 ? <span className="text-slate-300">-</span> : <span className="text-rose-600">{cheats}x Pindah Tab</span>}</td>
+                                                 </>
                                              )}
                                           </tr>
                                       )})}
-                                      {processedResults.length === 0 && <tr><td colSpan="5" className="text-center py-10 text-slate-500 italic">Tidak ada data peserta ujian untuk ditampilkan.</td></tr>}
+                                      {processedResults.length === 0 && <tr><td colSpan={filterSchool === 'Semua' ? 5 : 4} className="text-center py-10 text-slate-500 italic">Tidak ada data peserta ujian untuk ditampilkan.</td></tr>}
                                   </tbody>
                               </table>
                           </div>
