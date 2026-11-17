@@ -3250,42 +3250,56 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                          <p className="text-slate-600 font-medium">{organizerName}</p>
                       </div>
                       
+                      {/* DESAIN KOTAK KETERANGAN (HEADER LAPORAN) YANG SUDAH DISERAGAMKAN */}
                       <div className="mb-8 bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+                         
+                         {/* Baris Atas: Menampilkan Sekolah */}
+                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                              <div>
-                                 <p className="text-slate-500 text-xs font-bold uppercase mb-1">Sekolah / Kelas</p>
-                                 <p className="font-black text-blue-900 text-xl">{filterSchool}</p>
+                                 <p className="text-slate-500 text-[10px] font-bold uppercase mb-1">Sekolah / Kelas</p>
+                                 <p className="font-black text-blue-900 text-lg">{filterSchool}</p>
                              </div>
-                             {activeTab === 'RANKING' && (
-                                 <div className="sm:text-right bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+                             
+                             {/* Kotak Putih Kanan (Tergantung Tab Aktif) */}
+                             {activeTab === 'RANKING' ? (
+                                 <div className="bg-white px-4 py-3 rounded-lg border border-slate-200 shadow-sm min-w-[150px] text-center sm:text-right">
                                      <p className="text-slate-500 text-[10px] font-bold uppercase mb-1">Total Sekolah Terdata</p>
-                                     <p className="font-black text-slate-800 text-lg">{validRankingCount} Institusi</p>
+                                     <p className="font-black text-slate-800 text-base">{validRankingCount} Institusi</p>
                                  </div>
-                             )}
+                             ) : (activeTab === 'NILAI' || activeTab === 'PELANGGARAN') ? (
+                                 <div className="bg-white px-4 py-3 rounded-lg border border-slate-200 shadow-sm min-w-[150px] text-center sm:text-right">
+                                     <p className="text-slate-500 text-[10px] font-bold uppercase mb-1">Total Peserta Ujian</p>
+                                     <p className="font-black text-slate-800 text-base">{validCount} Siswa</p>
+                                 </div>
+                             ) : null}
                          </div>
                          
-                         {activeTab === 'NILAI' || activeTab === 'PELANGGARAN' ? (
-                            <>
-                               <div className={`mt-4 pt-4 border-t border-slate-200 pb-3 ${activeTab === 'NILAI' ? 'border-b' : ''}`}>
-                                   <p className="text-slate-500 text-xs font-bold uppercase mb-1">Mata Pelajaran</p>
-                                   <p className="font-black text-indigo-700 text-lg">{filterFolder}</p>
-                               </div>
-                               <div className={`mt-4 grid gap-4 text-sm ${activeTab === 'NILAI' ? 'grid-cols-3' : 'grid-cols-1'}`}>
-                                   <div><p className="text-slate-500 text-xs font-bold uppercase mb-1">Total Peserta</p><p className="font-black text-slate-800 text-base">{validCount} Siswa</p></div>
-                                   {activeTab === 'NILAI' && (
-                                       <>
-                                          <div><p className="text-slate-500 text-xs font-bold uppercase mb-1">Rata-Rata Nilai</p><p className="font-black text-emerald-700 text-base">{meanScore.toFixed(2)}</p></div>
-                                          <div><p className="text-slate-500 text-xs font-bold uppercase mb-1">Standar Deviasi</p><p className="font-black text-amber-600 text-base">± {stdDeviation.toFixed(2)}</p></div>
-                                       </>
-                                   )}
-                               </div>
-                            </>
-                         ) : activeTab === 'RANKING' ? (
+                         {/* Baris Bawah: Kotak-kotak (Cards) Statistik */}
+                         {activeTab === 'RANKING' ? (
                             <div className="grid gap-4 text-sm grid-cols-2 md:grid-cols-4 mt-5 pt-5 border-t border-slate-200">
                                 <div className="bg-white p-4 rounded-xl border border-blue-100 shadow-sm flex flex-col justify-between"><p className="text-slate-500 text-[10px] font-bold uppercase mb-2 leading-relaxed break-words">Rata-Rata<br/>{rankMathFolder || 'Mapel 1'}</p><p className="font-black text-blue-700 text-xl">{globalMathAvg.toFixed(2)}</p></div>
                                 <div className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm flex flex-col justify-between"><p className="text-slate-500 text-[10px] font-bold uppercase mb-2 leading-relaxed break-words">Rata-Rata<br/>{rankIndoFolder || 'Mapel 2'}</p><p className="font-black text-indigo-700 text-xl">{globalIndoAvg.toFixed(2)}</p></div>
                                 <div className="bg-white p-4 rounded-xl border border-emerald-100 shadow-sm flex flex-col justify-between"><p className="text-slate-500 text-[10px] font-bold uppercase mb-2 leading-relaxed break-words">Rata-Rata<br/>Total</p><p className="font-black text-emerald-700 text-xl">{globalTotalAvg.toFixed(2)}</p></div>
                                 <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm flex flex-col justify-between"><p className="text-slate-500 text-[10px] font-bold uppercase mb-2 leading-relaxed break-words">Standar<br/>Deviasi</p><p className="font-black text-amber-600 text-xl">± {stdDevRanking.toFixed(2)}</p></div>
+                            </div>
+                         ) : activeTab === 'NILAI' || activeTab === 'PELANGGARAN' ? (
+                            <div className="grid gap-4 text-sm grid-cols-1 md:grid-cols-3 mt-5 pt-5 border-t border-slate-200">
+                                <div className="bg-white p-4 rounded-xl border border-blue-100 shadow-sm flex flex-col justify-between">
+                                    <p className="text-slate-500 text-[10px] font-bold uppercase mb-2 leading-relaxed break-words">Kategori / Mata Pelajaran</p>
+                                    <p className="font-black text-blue-700 text-base">{filterFolder}</p>
+                                </div>
+                                {activeTab === 'NILAI' && (
+                                   <>
+                                      <div className="bg-white p-4 rounded-xl border border-emerald-100 shadow-sm flex flex-col justify-between">
+                                          <p className="text-slate-500 text-[10px] font-bold uppercase mb-2 leading-relaxed break-words">Rata-Rata Nilai</p>
+                                          <p className="font-black text-emerald-700 text-xl">{meanScore.toFixed(2)}</p>
+                                      </div>
+                                      <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm flex flex-col justify-between">
+                                          <p className="text-slate-500 text-[10px] font-bold uppercase mb-2 leading-relaxed break-words">Standar Deviasi</p>
+                                          <p className="font-black text-amber-600 text-xl">± {stdDeviation.toFixed(2)}</p>
+                                      </div>
+                                   </>
+                                )}
                             </div>
                          ) : (
                             <div className="mt-5 pt-4 border-t border-slate-200 print:hidden">
