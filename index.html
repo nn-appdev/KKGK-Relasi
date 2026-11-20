@@ -1193,34 +1193,139 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              );
           };
 
-          const AdminTokens = () => {
+         const AdminTokens = () => {
              const [isSaving, setIsSaving] = useState(false);
+             const [view, setViewLocal] = useState(window.savedTokenView || 'folders');
+             const [activeTokenFolder, setActiveTokenFolderLocal] = useState(window.savedTokenFolder || 'Umum');
+             const setView = (v) => { window.savedTokenView = v; setViewLocal(v); };
+             const setActiveTokenFolder = (f) => { window.savedTokenFolder = f; setActiveTokenFolderLocal(f); };
+
              const [showImport, setShowImport] = useState(false);
              const [isMassEdit, setIsMassEdit] = useState(false);
              const [massEditTokens, setMassEditTokens] = useState([]);
              
              const [selectedTokens, setSelectedTokens] = useState([]);
              const [downloadFilter, setDownloadFilter] = useState('Semua');
-             const [searchQuery, setSearchQuery] = useState(''); // BARIS BARU
+             const [searchQuery, setSearchQuery] = useState('');
              const [editFilter, setEditFilter] = useState('Semua');
              const [sortOrder, setSortOrder] = useState('DEFAULT');
              const [selectedFile, setSelectedFile] = useState(null);
 
-             const actualTokens = tokens.filter(t => !t.code.startsWith('SYS_SETTING_') && !t.code.startsWith('SYS_FOLDER_') && !t.code.startsWith('SEC_CFG_'));
-             const uniqueClasses = [...new Set(actualTokens.map(t => t.participant_school).filter(Boolean))];
-             const uniqueEditClasses = [...new Set(massEditTokens.map(t => t.participant_school).filter(Boolean))];
+             // Filter mutlak: sembunyikan semua token sistem & konfigurasi
+             const actualTokens = tokens.filter(t => t.code && !t.code.startsWith('SYS_') && !t.code.startsWith('SEC_CFG_'));
 
-             // UBAH BARIS INI
-             let displayedTokens = actualTokens.filter(t => {
+             // Hitung statistik folder token
+             const folderStats = {};
+             actualTokens.forEach(t => {
+                 const f = (t.folder || 'Umum').trim();
+                 if (!folderStats[f]) folderStats[f] = { total: 0, available: 0, used: 0 };
+                 folderStats[f].total += 1;
+                 if (t.status === 'AVAILABLE') folderStats[f].available += 1;
+                 else folderStats[f].used += 1;
+             });
+             tokens.forEach(t => {
+                 if (t.code && t.code.startsWith('SYS_TKN_FOLDER_')) {
+                     const f = (t.status || '').trim();
+                     if (f && !folderStats[f]) folderStats[f] = { total: 0, available: 0, used: 0 };
+                 }
+             });
+             if (Object.keys(folderStats).length === 0) {
+                 folderStats['Umum'] = { total: 0, available: 0, used: 0 };
+             }
+             const allFolderNames = Object.keys(folderStats).sort((a, b) => a.localeCompare(b));
+
+             // Token khusus di folder yang sedang dibuka
+             const folderTokens = actualTokens.filter(t => (t.folder || 'Umum').trim() === activeTokenFolder);
+
+             const uniqueClasses = [...new Set(folderTokens.map(t => t.participant_school).filter(Boolean))].sort();
+             const uniqueEditClasses = [...new Set(massEditTokens.map(t => t.participant_school).filter(Boolean))].sort();
+
+             let displayedTokens = folderTokens.filter(t => {
                  const matchSchool = downloadFilter === 'Semua' || t.participant_school === downloadFilter;
-                 const matchSearch = t.participant_name?.toLowerCase().includes(searchQuery.toLowerCase()) || t.code?.toLowerCase().includes(searchQuery.toLowerCase());
+                 const matchSearch = (t.participant_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (t.code || '').toLowerCase().includes(searchQuery.toLowerCase());
                  return matchSchool && matchSearch;
              });
-             // Logika sorting di bawahnya biarkan sama
+             if (sortOrder === 'NAME_ASC') displayedTokens.sort((a,b) => (a.participant_name || '').localeCompare(b.participant_name || ''));
+             else if (sortOrder === 'NAME_DESC') displayedTokens.sort((a,b) => (b.participant_name || '').localeCompare(a.participant_name || ''));
 
              let displayedMassEditTokens = editFilter === 'Semua' ? [...massEditTokens] : massEditTokens.filter(t => t.participant_school === editFilter);
              if (sortOrder === 'NAME_ASC') displayedMassEditTokens.sort((a,b) => (a.participant_name || '').localeCompare(b.participant_name || ''));
              else if (sortOrder === 'NAME_DESC') displayedMassEditTokens.sort((a,b) => (b.participant_name || '').localeCompare(a.participant_name || ''));
+
+             const createTokenFolder = async () => {
+                 const fname = prompt("Masukkan Nama Folder Token Baru:\n(Contoh: Kecamatan Wonosobo, Kecamatan Garung, dll)");
+                 if (fname && fname.trim() !== '') {
+                     const folderName = fname.trim();
+                     if (folderStats[folderName]) return alert(`Folder "${folderName}" sudah ada.`);
+                     setIsSaving(true);
+                     try {
+                         const db = await getSupabase();
+                         const { error } = await db.from('tokens').insert([{ code: `SYS_TKN_FOLDER_${Date.now()}`, status: folderName, generatedAt: new Date().toISOString(), participant_name: 'SYSTEM_TOKEN_FOLDER' }]);
+                         if (error) throw error;
+                         setActiveTokenFolder(folderName);
+                         setView('list');
+                         await fetchSupabaseData();
+                         alert(`Folder "${folderName}" berhasil dibuat!`);
+                     } catch(e) { alert("Gagal membuat folder: " + e.message); }
+                     setIsSaving(false);
+                 }
+             };
+
+             const editTokenFolder = async (oldName) => {
+                 const newName = prompt(`Ubah nama folder "${oldName}" menjadi:`, oldName);
+                 if (newName && newName.trim() !== '' && newName.trim() !== oldName) {
+                     const targetName = newName.trim();
+                     setIsSaving(true);
+                     try {
+                         const db = await getSupabase();
+                         const sysToken = tokens.find(t => t.code && t.code.startsWith('SYS_TKN_FOLDER_') && t.status === oldName);
+                         if (sysToken) {
+                             await db.from('tokens').update({ status: targetName }).eq('code', sysToken.code);
+                         } else {
+                             await db.from('tokens').insert([{ code: `SYS_TKN_FOLDER_${Date.now()}`, status: targetName, generatedAt: new Date().toISOString(), participant_name: 'SYSTEM_TOKEN_FOLDER' }]);
+                         }
+
+                         const codesToUpdate = actualTokens.filter(t => (t.folder || 'Umum').trim() === oldName).map(t => t.code);
+                         const batchSize = 500;
+                         for (let i = 0; i < codesToUpdate.length; i += batchSize) {
+                             const chunk = codesToUpdate.slice(i, i + batchSize);
+                             const { error } = await db.from('tokens').update({ folder: targetName }).in('code', chunk);
+                             if (error) throw error;
+                         }
+
+                         if (activeTokenFolder === oldName) setActiveTokenFolder(targetName);
+                         await fetchSupabaseData();
+                         alert(`Nama folder berhasil diubah menjadi "${targetName}".`);
+                     } catch(e) { alert("Gagal mengubah nama folder: " + e.message); }
+                     setIsSaving(false);
+                 }
+             };
+
+             const deleteTokenFolder = async (fname) => {
+                 if (fname === 'Umum') return alert("Folder 'Umum' adalah folder bawaan dan tidak dapat dihapus. Anda bisa mengubah namanya lewat tombol Edit.");
+                 const count = folderStats[fname]?.total || 0;
+                 if (!confirm(`Hapus permanen folder "${fname}" beserta ${count} token peserta di dalamnya?`)) return;
+                 setIsSaving(true);
+                 try {
+                     const db = await getSupabase();
+                     const sysToken = tokens.find(t => t.code && t.code.startsWith('SYS_TKN_FOLDER_') && t.status === fname);
+                     if (sysToken) await db.from('tokens').delete().eq('code', sysToken.code);
+
+                     const codesToDelete = actualTokens.filter(t => (t.folder || 'Umum').trim() === fname).map(t => t.code);
+                     const batchSize = 500;
+                     for (let i = 0; i < codesToDelete.length; i += batchSize) {
+                         const chunk = codesToDelete.slice(i, i + batchSize);
+                         const { error } = await db.from('tokens').delete().in('code', chunk);
+                         if (error) throw error;
+                     }
+
+                     setActiveTokenFolder('Umum');
+                     setView('folders');
+                     await fetchSupabaseData();
+                     alert(`Folder "${fname}" berhasil dihapus.`);
+                 } catch(e) { alert("Gagal menghapus folder: " + e.message); }
+                 setIsSaving(false);
+             };
 
              const handleSelectAll = (e) => {
                  if (e.target.checked) setSelectedTokens(displayedTokens.map(t => t.code));
@@ -1243,8 +1348,12 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                  setIsSaving(true);
                  try {
                      const db = await getSupabase();
-                     const { error } = await db.from('tokens').delete().in('code', selectedTokens);
-                     if (error) throw error;
+                     const batchSize = 500;
+                     for (let i = 0; i < selectedTokens.length; i += batchSize) {
+                         const chunk = selectedTokens.slice(i, i + batchSize);
+                         const { error } = await db.from('tokens').delete().in('code', chunk);
+                         if (error) throw error;
+                     }
                      await fetchSupabaseData(); 
                      setSelectedTokens([]); 
                      alert("Data terpilih berhasil dihapus.");
@@ -1263,7 +1372,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                  });
 
                  const htmlContent = `
-                     <!DOCTYPE html><html><head><title>Data_Token_${downloadFilter.replace(/\s+/g, '_')}</title>
+                     <!DOCTYPE html><html><head><title>Data_Token_${activeTokenFolder.replace(/\s+/g, '_')}_${downloadFilter.replace(/\s+/g, '_')}</title>
                      <style>
                          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; padding: 20px; }
                          .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1e293b; padding-bottom: 15px; }
@@ -1276,7 +1385,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                          .status-available { background-color: #d1fae5; color: #065f46; border: 1px solid #34d399; } .status-used { background-color: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
                          @media print { @page { margin: 1.5cm; } body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
                      </style></head><body>
-                         <div class="header"><h2>Daftar Token TO TKA Kec. Wonosobo</h2><p>Filter: <strong>${downloadFilter}</strong> &nbsp;|&nbsp; Unduh: ${dateStr}</p></div>
+                         <div class="header"><h2>Daftar Token TO TKA - ${activeTokenFolder}</h2><p>Filter Sekolah: <strong>${downloadFilter}</strong> &nbsp;|&nbsp; Unduh: ${dateStr}</p></div>
                          <table><thead><tr><th class="text-center" style="width: 5%;">No</th><th style="width: 30%;">Nama Peserta</th><th style="width: 30%;">Asal Sekolah / Kelas</th><th class="text-center" style="width: 20%;">Token</th><th class="text-center" style="width: 15%;">Status</th></tr></thead>
                          <tbody>${tableRowsHTML}</tbody></table>
                          <script>window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); }<${'/'}script>
@@ -1302,7 +1411,6 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                          const text = event.target.result;
                          const lines = text.split('\n').filter(l => l.trim() !== '');
                          const payloads = [];
-                         
                          const startIndex = lines[0].toLowerCase().includes('nama') ? 1 : 0;
                          
                          for (let i = startIndex; i < lines.length; i++) {
@@ -1316,6 +1424,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                          status: 'AVAILABLE',
                                          participant_name: name,
                                          participant_school: school,
+                                         folder: activeTokenFolder,
                                          generatedAt: new Date().toISOString()
                                      });
                                  }
@@ -1328,7 +1437,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                          const { error } = await db.from('tokens').insert(payloads);
                          if (error) throw error;
 
-                         alert(`Berhasil mengimpor ${payloads.length} data peserta!`);
+                         alert(`Berhasil mengimpor ${payloads.length} peserta ke folder "${activeTokenFolder}"!`);
                          setShowImport(false);
                          setSelectedFile(null); 
                          fetchSupabaseData(); 
@@ -1342,11 +1451,16 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
              };
 
              const addManual = async () => {
-                 const name = prompt("Nama Peserta:"); if (!name) return;
+                 const name = prompt(`Nama Peserta (Folder: ${activeTokenFolder}):`); if (!name) return;
                  const school = prompt("Asal Sekolah:") || organizerName;
                  const newCode = `TKA-${Math.random().toString(36).substring(2,6).toUpperCase()}`;
                  setIsSaving(true);
-                 try { const db = await getSupabase(); await db.from('tokens').insert([{ code: newCode, status: 'AVAILABLE', participant_name: name, participant_school: school, generatedAt: new Date().toISOString() }]); fetchSupabaseData(); } catch(e) { alert(e.message); }
+                 try { 
+                     const db = await getSupabase(); 
+                     const { error } = await db.from('tokens').insert([{ code: newCode, status: 'AVAILABLE', participant_name: name, participant_school: school, folder: activeTokenFolder, generatedAt: new Date().toISOString() }]); 
+                     if (error) throw error;
+                     fetchSupabaseData(); 
+                 } catch(e) { alert("Gagal menambah peserta: " + e.message); }
                  setIsSaving(false);
              };
 
@@ -1354,9 +1468,9 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                  setEditFilter('Semua');
                  if (selectedTokens.length > 0) {
                      const tokensToEdit = displayedTokens.filter(t => selectedTokens.includes(t.code));
-                     setMassEditTokens(JSON.parse(JSON.stringify(tokensToEdit)));
+                     setMassEditTokens(JSON.parse(JSON.stringify(tokensToEdit.map(t => ({ ...t, folder: t.folder || activeTokenFolder })))));
                  } else {
-                     setMassEditTokens(JSON.parse(JSON.stringify(displayedTokens)));
+                     setMassEditTokens(JSON.parse(JSON.stringify(displayedTokens.map(t => ({ ...t, folder: t.folder || activeTokenFolder })))));
                  }
                  setSelectedTokens([]); setIsMassEdit(true);
              };
@@ -1371,13 +1485,27 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                  setMassEditTokens(updated);
              };
 
+             const handleBulkMoveFolder = (targetFolder) => {
+                 if (selectedTokens.length === 0) return alert("Pilih baris terlebih dahulu dengan mencentang kotak di kiri!");
+                 const updated = massEditTokens.map(t => selectedTokens.includes(t.code) ? { ...t, folder: targetFolder } : t);
+                 setMassEditTokens(updated);
+             };
+
              const saveMassEdit = async () => {
                  setIsSaving(true);
                  try {
                      const db = await getSupabase();
-                     await db.from('tokens').upsert(massEditTokens.map(t => ({ code: t.code, status: t.status, participant_name: t.participant_name, participant_school: t.participant_school })));
-                     fetchSupabaseData(); setIsMassEdit(false); setSelectedTokens([]); alert("Data berhasil diperbarui!");
-                 } catch(e) { alert(e.message); }
+                     const payload = massEditTokens.map(t => ({ code: t.code, status: t.status, participant_name: t.participant_name, participant_school: t.participant_school, folder: t.folder || activeTokenFolder }));
+                     const batchSize = 500;
+                     for (let i = 0; i < payload.length; i += batchSize) {
+                         const { error } = await db.from('tokens').upsert(payload.slice(i, i + batchSize));
+                         if (error) throw error;
+                     }
+                     await fetchSupabaseData(); 
+                     setIsMassEdit(false); 
+                     setSelectedTokens([]); 
+                     alert("Data berhasil diperbarui!");
+                 } catch(e) { alert("Gagal menyimpan perubahan: " + e.message); }
                  setIsSaving(false);
              };
 
@@ -1388,15 +1516,55 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                  setIsSaving(false);
              };
 
+             // --- TAMPILAN 1: DAFTAR FOLDER TOKEN ---
+             if (view === 'folders') {
+                 return (
+                     <AdminLayout title="Folder Token Ujian">
+                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                             <div onClick={createTokenFolder} className="bg-emerald-50 border-2 border-dashed border-emerald-300 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer min-h-[180px] hover:bg-emerald-100 transition-colors">
+                                 <div className="w-12 h-12 bg-emerald-200 text-emerald-700 rounded-full flex items-center justify-center mb-3"><Plus size={24}/></div>
+                                 <span className="font-bold text-emerald-800">Buat Folder Baru</span>
+                                 <span className="text-xs text-emerald-600 mt-1 text-center">Misal: Kecamatan Wonosobo, dll</span>
+                             </div>
+                             {allFolderNames.map((fname) => {
+                                 const st = folderStats[fname] || { total: 0, available: 0, used: 0 };
+                                 return (
+                                     <div key={fname} className="bg-white border-2 border-slate-200 hover:border-blue-300 rounded-2xl p-6 flex flex-col justify-between shadow-sm min-h-[180px] transition-colors">
+                                         <div>
+                                             <div className="flex items-center gap-2 mb-2">
+                                                 <i className="fas fa-folder text-amber-400 text-xl"></i>
+                                                 <h4 className="font-bold text-lg text-slate-800 truncate" title={fname}>{fname}</h4>
+                                             </div>
+                                             <div className="flex flex-wrap gap-2 mt-3">
+                                                 <span className="text-xs text-slate-700 font-bold bg-slate-100 px-2.5 py-1 rounded-full">{st.total} Peserta</span>
+                                                 <span className="text-xs text-emerald-700 font-bold bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full">{st.available} Tersedia</span>
+                                                 {st.used > 0 && <span className="text-xs text-rose-700 font-bold bg-rose-50 border border-rose-100 px-2.5 py-1 rounded-full">{st.used} Terpakai</span>}
+                                             </div>
+                                         </div>
+                                         <div className="mt-6 flex gap-2">
+                                             <button onClick={() => { setActiveTokenFolder(fname); setDownloadFilter('Semua'); setSearchQuery(''); setSelectedTokens([]); setIsMassEdit(false); setView('list'); }} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-bold transition-colors shadow-sm">Buka Folder</button>
+                                             <button onClick={() => editTokenFolder(fname)} className="px-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" title="Ubah Nama Folder"><Edit size={16}/></button>
+                                             {fname !== 'Umum' && <button onClick={() => deleteTokenFolder(fname)} className="px-3 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-colors" title="Hapus Folder Permanen"><Trash2 size={16}/></button>}
+                                         </div>
+                                     </div>
+                                 );
+                             })}
+                         </div>
+                     </AdminLayout>
+                 );
+             }
+
+             // --- TAMPILAN 2: ISI TOKEN DI DALAM FOLDER ---
              return (
-               <AdminLayout title="Token Ujian">
+               <AdminLayout title={`Token Ujian: ${activeTokenFolder}`}>
                  <div className="bg-white p-4 rounded-xl border mb-6 flex flex-wrap gap-3 items-center shadow-sm">
                     {!isMassEdit ? (
                         <>
+                            <button onClick={() => { setView('folders'); setSelectedTokens([]); }} className="border border-slate-300 text-slate-700 hover:bg-slate-50 px-3.5 py-2.5 rounded-lg text-sm font-semibold flex items-center transition-colors"><ChevronLeft size={16} className="mr-1"/> Folder</button>
                             <button onClick={addManual} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center transition-colors"><Plus size={16} className="mr-2"/> Tambah Manual</button>
                             <button onClick={() => setShowImport(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center transition-colors"><Upload size={16} className="mr-2"/> Unggah Peserta</button>
                             <button onClick={startMassEdit} disabled={displayedTokens.length===0} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center transition-colors disabled:opacity-50">
-                                <Edit size={16} className="mr-2"/> {selectedTokens.length > 0 ? `Edit Terpilih (${selectedTokens.length})` : 'Edit'}
+                                <Edit size={16} className="mr-2"/> {selectedTokens.length > 0 ? `Edit / Pindah (${selectedTokens.length})` : 'Edit / Pindah'}
                             </button>
                             
                            <div className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 ml-auto">
@@ -1409,14 +1577,14 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                         placeholder="Cari Nama / Token..." 
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="pl-8 pr-3 py-2.5 bg-white border border-slate-300 text-sm font-medium rounded-lg outline-none focus:border-blue-500 w-48 transition-all"
+                                        className="pl-8 pr-3 py-2.5 bg-white border border-slate-300 text-sm font-medium rounded-lg outline-none focus:border-blue-500 w-44 transition-all"
                                     />
                                 </div>
                                 <select value={sortOrder} onChange={e=>setSortOrder(e.target.value)} className="bg-white border border-slate-300 text-sm font-medium rounded-lg px-2 py-2.5 outline-none focus:border-blue-500 cursor-pointer">
-                                    <option value="DEFAULT">Urutan Acak</option><option value="NAME_ASC">Nama A-Z</option><option value="NAME_DESC">Nama Z-A</option>
+                                    <option value="DEFAULT">Urutan Default</option><option value="NAME_ASC">Nama A-Z</option><option value="NAME_DESC">Nama Z-A</option>
                                 </select>
-                                <select value={downloadFilter} onChange={(e) => {setDownloadFilter(e.target.value); setSelectedTokens([]);}} className="bg-white border border-slate-300 text-sm font-medium rounded-lg px-2 py-2.5 outline-none focus:border-blue-500 cursor-pointer">
-                                    <option value="Semua">Semua Kelas/Sekolah</option>
+                                <select value={downloadFilter} onChange={(e) => {setDownloadFilter(e.target.value); setSelectedTokens([]);}} className="bg-white border border-slate-300 text-sm font-medium rounded-lg px-2 py-2.5 outline-none focus:border-blue-500 cursor-pointer max-w-[200px]">
+                                    <option value="Semua">Semua Sekolah</option>
                                     {uniqueClasses.map((cls, idx) => <option key={idx} value={cls}>{cls}</option>)}
                                 </select>
                                 <button onClick={downloadPeserta} className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-4 py-2.5 rounded-lg font-bold text-sm transition-colors flex items-center border border-emerald-200"><i className="fas fa-file-pdf mr-2"></i> Cetak PDF</button>
@@ -1427,15 +1595,15 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                     ) : (
                         <div className="w-full flex flex-wrap gap-2 items-center justify-between">
                             <div className="flex gap-2">
-                                <button onClick={saveMassEdit} disabled={isSaving} className="bg-emerald-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-md"><Save size={16} className="inline mr-2"/> Simpan Perubahan</button>
+                                <button onClick={saveMassEdit} disabled={isSaving} className="bg-emerald-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-md"><Save size={16} className="inline mr-2"/> {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}</button>
                                 <button onClick={() => { setIsMassEdit(false); setSelectedTokens([]); }} className="bg-slate-200 text-slate-700 hover:bg-slate-300 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors">Batal</button>
                             </div>
-                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 ml-auto">
+                            <div className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 ml-auto">
                                 <select value={sortOrder} onChange={e=>setSortOrder(e.target.value)} className="bg-white border border-slate-300 text-sm font-medium rounded-lg px-2 py-1.5 outline-none focus:border-blue-500 cursor-pointer">
-                                    <option value="DEFAULT">Urutan Acak</option><option value="NAME_ASC">Nama A-Z</option><option value="NAME_DESC">Nama Z-A</option>
+                                    <option value="DEFAULT">Urutan Default</option><option value="NAME_ASC">Nama A-Z</option><option value="NAME_DESC">Nama Z-A</option>
                                 </select>
                                 <select value={editFilter} onChange={e => {setEditFilter(e.target.value); setSelectedTokens([]);}} className="bg-white border border-slate-300 text-sm font-medium rounded-lg px-3 py-1.5 outline-none focus:border-blue-500 cursor-pointer">
-                                    <option value="Semua">Semua Kelas/Sekolah</option>
+                                    <option value="Semua">Semua Sekolah</option>
                                     {uniqueEditClasses.map((cls, idx) => <option key={idx} value={cls}>{cls}</option>)}
                                 </select>
                             </div>
@@ -1447,7 +1615,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                      <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
                         <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-5">
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-bold">Impor Peserta</h3>
+                                <h3 className="font-bold">Impor Peserta ke: <span className="text-blue-600">{activeTokenFolder}</span></h3>
                                 <button onClick={()=>{setShowImport(false); setSelectedFile(null);}}><X size={18}/></button>
                             </div>
                             <button onClick={downloadTemplateCSV} className="mb-4 bg-blue-50 border text-blue-700 px-4 py-2 rounded-lg text-sm font-semibold flex items-center"><FileText size={16} className="mr-2"/> Download Templat</button>
@@ -1480,11 +1648,19 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                 <th className="p-4 text-center w-12"><input type="checkbox" className="w-4 h-4 cursor-pointer accent-blue-600 rounded" onChange={isMassEdit ? handleSelectAllEdit : handleSelectAll} checked={selectedTokens.length > 0 && selectedTokens.length === (isMassEdit ? displayedMassEditTokens.length : displayedTokens.length)} /></th>
                                 <th className="p-4 w-12 text-center">No</th><th className="p-4">Nama</th><th className="p-4">Sekolah/Kelas</th><th className="p-4">Token</th>
                                 {isMassEdit ? (
-                                    <th className="p-4 min-w-[160px]">Status
-                                        <select onChange={(e) => { if(e.target.value) handleBulkEditStatus(e.target.value); e.target.value=''; }} className="mt-1.5 w-full border border-slate-300 rounded text-xs font-bold text-blue-700 bg-blue-50 p-1.5 outline-none cursor-pointer">
-                                            <option value="">+ Set Terpilih</option><option value="AVAILABLE">AVAILABLE</option><option value="USED">USED</option><option value="EXPIRED">EXPIRED</option>
-                                        </select>
-                                    </th>
+                                    <>
+                                        <th className="p-4 min-w-[160px]">Folder
+                                            <select onChange={(e) => { if(e.target.value) handleBulkMoveFolder(e.target.value); e.target.value=''; }} className="mt-1.5 w-full border border-indigo-300 rounded text-xs font-bold text-indigo-700 bg-indigo-50 p-1.5 outline-none cursor-pointer">
+                                                <option value="">+ Pindah Terpilih</option>
+                                                {allFolderNames.map(f => <option key={f} value={f}>{f}</option>)}
+                                            </select>
+                                        </th>
+                                        <th className="p-4 min-w-[150px]">Status
+                                            <select onChange={(e) => { if(e.target.value) handleBulkEditStatus(e.target.value); e.target.value=''; }} className="mt-1.5 w-full border border-slate-300 rounded text-xs font-bold text-blue-700 bg-blue-50 p-1.5 outline-none cursor-pointer">
+                                                <option value="">+ Set Terpilih</option><option value="AVAILABLE">AVAILABLE</option><option value="USED">USED</option><option value="EXPIRED">EXPIRED</option>
+                                            </select>
+                                        </th>
+                                    </>
                                 ) : (<th className="p-4 text-center">Status</th>)}
                                 {!isMassEdit && <th className="p-4 text-center">Aksi</th>}
                             </tr>
@@ -1500,6 +1676,11 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                             <td className="p-2"><input type="text" value={t.participant_name} onChange={e=>handleMassEditChange(originalIndex, 'participant_name', e.target.value)} className="w-full p-2 border border-blue-200 rounded text-sm outline-none focus:ring-1"/></td>
                                             <td className="p-2"><input type="text" value={t.participant_school} onChange={e=>handleMassEditChange(originalIndex, 'participant_school', e.target.value)} className="w-full p-2 border border-blue-200 rounded text-sm outline-none focus:ring-1"/></td>
                                             <td className="p-3 font-mono font-bold text-slate-500">{t.code}</td>
+                                            <td className="p-2">
+                                                <select value={t.folder || activeTokenFolder} onChange={e=>handleMassEditChange(originalIndex, 'folder', e.target.value)} className="w-full p-2 border border-indigo-200 rounded text-xs font-bold outline-none cursor-pointer bg-white text-indigo-700">
+                                                    {allFolderNames.map(f => <option key={f} value={f}>{f}</option>)}
+                                                </select>
+                                            </td>
                                             <td className="p-2"><select value={t.status} onChange={e=>handleMassEditChange(originalIndex, 'status', e.target.value)} className="w-full p-2 border border-blue-200 rounded text-xs font-bold outline-none cursor-pointer bg-white"><option value="AVAILABLE">AVAILABLE</option><option value="USED">USED</option><option value="EXPIRED">EXPIRED</option></select></td>
                                         </tr>
                                     );
@@ -1517,7 +1698,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                     </tr>
                                 ))
                             )}
-                            {(isMassEdit ? displayedMassEditTokens : displayedTokens).length === 0 && <tr><td colSpan={isMassEdit ? 6 : 7} className="text-center py-8 text-slate-500 italic bg-slate-50">Belum ada data peserta.</td></tr>}
+                            {(isMassEdit ? displayedMassEditTokens : displayedTokens).length === 0 && <tr><td colSpan={7} className="text-center py-8 text-slate-500 italic bg-slate-50">Belum ada data peserta di folder ini.</td></tr>}
                         </tbody>
                     </table>
                  </div>
