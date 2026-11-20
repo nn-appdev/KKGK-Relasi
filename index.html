@@ -4121,9 +4121,6 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
             );
           };
           switch (currentRoute) {
-            case '/admin/reports': return <AdminReports />;
-            case '/admin/access': return <AdminAccess />;
-            default: return <ParticipantLogin />;
             case '/': case '/login': return <ParticipantLogin />;
             case '/instruction': return <ParticipantInstruction />;
             case '/exam': return <ExamEngine />;
@@ -4136,6 +4133,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
             case '/admin/questions': return <AdminQuestions />;
             case '/admin/analysis': return <AdminItemAnalysis />;
             case '/admin/reports': return <AdminReports />;
+            case '/admin/access': return <AdminAccess />;
             default: return <ParticipantLogin />;
           }
         }
