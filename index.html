@@ -373,6 +373,28 @@
           
           const [activeSession, setActiveSession] = useStickySession(null, 'cbt_active_session');
           const [isAdminLoggedIn, setIsAdminLoggedIn] = useStickySession(false, 'cbt_admin_auth');
+          const DEFAULT_ACCESS_CONFIG = {
+            permissions: {
+              ADMIN: ['dashboard', 'questions', 'tokens', 'results', 'analysis', 'reports', 'access'],
+              PROKTOR: ['dashboard', 'tokens', 'results']
+            },
+            accounts: [
+              { id: 'super_admin', name: 'Super Admin', username: 'admin', password: 'kkgkrelasi26', role: 'ADMIN', isSuper: true },
+              { id: 'proktor_default', name: 'Proktor Ujian', username: 'proktor', password: 'proktor26', role: 'PROKTOR', isSuper: false }
+            ]
+          };
+
+          const [adminUser, setAdminUser] = useStickySession(null, 'cbt_admin_user');
+          const [accessConfig, setAccessConfig] = useState(DEFAULT_ACCESS_CONFIG);
+
+          const activeAdminRole = adminUser?.role || 'ADMIN';
+          const isSuperAdmin = adminUser ? !!adminUser.isSuper : true;
+
+          const hasAccess = (menuId) => {
+            if (isSuperAdmin) return true;
+            const allowed = accessConfig?.permissions?.[activeAdminRole] || [];
+            return allowed.includes(menuId);
+          };
 
           const navigate = (path) => { window.scrollTo(0,0); setCurrentRoute(path); };
 
@@ -446,6 +468,15 @@
                     const roToken = allTokens.find(t => t.code === 'SEC_CFG_RNO_66YM4');
                     if (roToken) setIsRandomOpt(roToken.status === 'TRUE');
                 }
+                 const accToken = allTokens.find(t => t.code === 'SEC_CFG_ACCESS_99RBAC');
+                    if (accToken && accToken.status) {
+                        try {
+                            const parsedAcc = JSON.parse(accToken.status);
+                            if (parsedAcc && parsedAcc.permissions && Array.isArray(parsedAcc.accounts)) {
+                                setAccessConfig(parsedAcc);
+                            }
+                        } catch(e) { console.warn("Gagal parse konfigurasi akses:", e); }
+                    }
 
                 if (isAdminLoggedIn) {
                    const allResults = await fetchAllData('results');
@@ -1055,17 +1086,59 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
           );
 
           const AdminLogin = () => {
-            const [u, setU] = useState(''); const [p, setP] = useState(''); const [showP, setShowP] = useState(false);
+            const [u, setU] = useState('');
+            const [p, setP] = useState('');
+            const [showP, setShowP] = useState(false);
+
+            const handleAdminLogin = (e) => {
+              e.preventDefault();
+              const inputU = u.trim().toLowerCase();
+              const inputP = p.trim();
+
+              const accounts = accessConfig?.accounts || DEFAULT_ACCESS_CONFIG.accounts;
+              const matched = accounts.find(acc => acc.username.toLowerCase() === inputU && acc.password === inputP);
+
+              let loggedUser = matched;
+              if (!loggedUser && inputU === 'admin' && inputP === 'kkgkrelasi26') {
+                loggedUser = { id: 'super_admin', name: 'Super Admin', username: 'admin', role: 'ADMIN', isSuper: true };
+              }
+
+              if (!loggedUser) {
+                alert('Username atau Password salah!');
+                return;
+              }
+
+              setAdminUser({ id: loggedUser.id, name: loggedUser.name, username: loggedUser.username, role: loggedUser.role, isSuper: !!loggedUser.isSuper });
+              setIsAdminLoggedIn(true);
+
+              const routeMap = [
+                { id: 'dashboard', path: '/admin/dashboard' },
+                { id: 'questions', path: '/admin/questions' },
+                { id: 'tokens', path: '/admin/tokens' },
+                { id: 'results', path: '/admin/results' },
+                { id: 'analysis', path: '/admin/analysis' },
+                { id: 'reports', path: '/admin/reports' },
+                { id: 'access', path: '/admin/access' }
+              ];
+              const allowedList = loggedUser.isSuper ? routeMap.map(r => r.id) : (accessConfig?.permissions?.[loggedUser.role] || []);
+              const firstRoute = routeMap.find(r => allowedList.includes(r.id))?.path || '/admin/dashboard';
+              navigate(firstRoute);
+            };
+
             return (
               <div className="min-h-screen bg-slate-900 flex justify-center items-center p-4">
-                <form onSubmit={(e)=>{e.preventDefault(); if(u==='admin'&&p==='kkgkrelasi26'){setIsAdminLoggedIn(true); navigate('/admin/dashboard');}else alert('Salah');}} className="bg-white p-8 rounded-2xl max-w-sm w-full shadow-2xl">
-                   <div className="text-center mb-6"><div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3"><Settings size={24}/></div><h1 className="text-xl font-bold text-slate-800">Admin</h1></div>
+                <form onSubmit={handleAdminLogin} className="bg-white p-8 rounded-2xl max-w-sm w-full shadow-2xl">
+                   <div className="text-center mb-6">
+                      <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3"><Settings size={24}/></div>
+                      <h1 className="text-xl font-bold text-slate-800">Login Admin / Proktor</h1>
+                      <p className="text-xs text-slate-400 mt-1">Masuk sesuai akun yang terdaftar</p>
+                   </div>
                    <input type="text" placeholder="Username" value={u} onChange={e=>setU(e.target.value)} className="w-full p-3 border rounded-lg mb-3 text-sm" required/>
                    <div className="relative mb-6">
                        <input type={showP ? "text" : "password"} placeholder="Password" value={p} onChange={e=>setP(e.target.value)} className="w-full p-3 border rounded-lg text-sm pr-10" required/>
                        <button type="button" onClick={()=>setShowP(!showP)} className="absolute right-3 top-3 text-slate-400 hover:text-slate-600">{showP ? <EyeSlash size={18}/> : <Eye size={18}/>}</button>
                    </div>
-                   <button type="submit" className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg">Login</button>
+                   <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">Login</button>
                    <button type="button" onClick={()=>navigate('/')} className="w-full mt-4 text-xs text-slate-500 font-medium">Kembali</button>
                 </form>
               </div>
@@ -1075,28 +1148,80 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
           const AdminLayout = ({ children, title }) => {
             const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
             if (!isAdminLoggedIn) { navigate('/admin/login'); return null; }
-            const menu = [
+
+            const ShieldIcon = ({size=18, className=""}) => <i className={`fas fa-user-shield ${className}`} style={{fontSize: size}}></i>;
+
+            const allMenu = [
               { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
               { id: 'questions', label: 'Bank Soal', icon: Database, path: '/admin/questions' },
               { id: 'tokens', label: 'Token Ujian', icon: Key, path: '/admin/tokens' },
               { id: 'results', label: 'Hasil Ujian', icon: CheckSquare, path: '/admin/results' },
               { id: 'analysis', label: 'Analisis Soal', icon: BarChart2, path: '/admin/analysis' },
-              { id: 'reports', label: 'Cetak Laporan', icon: Printer, path: '/admin/reports' }
+              { id: 'reports', label: 'Cetak Laporan', icon: Printer, path: '/admin/reports' },
+              { id: 'access', label: 'Kelola Akses', icon: ShieldIcon, path: '/admin/access' }
             ];
+
+            const visibleMenu = allMenu.filter(m => hasAccess(m.id));
+            const currentMenuObj = allMenu.find(m => currentRoute.startsWith(m.path));
+            const isPageAllowed = !currentMenuObj || hasAccess(currentMenuObj.id);
+
             return (
               <div className="min-h-screen bg-slate-50 flex print:block">
                 {isMobileMenuOpen && <div className="fixed inset-0 bg-slate-900/60 z-40 lg:hidden" onClick={() => setIsMobileMenuOpen(false)} />}
                 <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 flex flex-col transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 transition-transform`}>
-                  <div className="p-6 flex items-center justify-between border-b border-slate-800"><div className="flex items-center"><div className="w-8 h-8 bg-blue-500 text-white rounded flex items-center justify-center mr-3"><Settings size={16}/></div><span className="text-white font-bold">CBT ADMIN</span></div><button className="lg:hidden text-slate-400" onClick={() => setIsMobileMenuOpen(false)}><X size={20}/></button></div>
-                  <nav className="flex-1 py-4 space-y-1 px-3">{menu.map(m => (<button key={m.id} onClick={() => { setIsMobileMenuOpen(false); navigate(m.path); }} className={`w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium ${currentRoute.startsWith(m.path) ? 'bg-blue-500/10 text-blue-400' : 'text-slate-400 hover:bg-slate-800'}`}><m.icon size={18} className="mr-3"/> {m.label}</button>))}</nav>
-                  <div className="p-4 border-t border-slate-800"><button onClick={() => { setIsAdminLoggedIn(false); navigate('/admin/login'); }} className="w-full flex items-center justify-center px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"><LogOut size={16} className="mr-2"/> Keluar</button></div>
+                  <div className="p-6 flex items-center justify-between border-b border-slate-800">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 bg-blue-500 text-white rounded flex items-center justify-center mr-3"><Settings size={16}/></div>
+                      <div>
+                        <span className="text-white font-bold block leading-none">CBT PANEL</span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded mt-1 inline-block ${activeAdminRole === 'ADMIN' ? 'bg-blue-500/20 text-blue-300' : 'bg-amber-500/20 text-amber-300'}`}>
+                          {activeAdminRole}
+                        </span>
+                      </div>
+                    </div>
+                    <button className="lg:hidden text-slate-400" onClick={() => setIsMobileMenuOpen(false)}><X size={20}/></button>
+                  </div>
+                  <nav className="flex-1 py-4 space-y-1 px-3">
+                    {visibleMenu.map(m => (
+                      <button key={m.id} onClick={() => { setIsMobileMenuOpen(false); navigate(m.path); }} className={`w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium ${currentRoute.startsWith(m.path) ? 'bg-blue-500/10 text-blue-400' : 'text-slate-400 hover:bg-slate-800'}`}>
+                        <m.icon size={18} className="mr-3"/> {m.label}
+                      </button>
+                    ))}
+                  </nav>
+                  <div className="p-4 border-t border-slate-800">
+                    <div className="mb-3 px-2 text-xs text-slate-400 truncate" title={adminUser?.name || 'Super Admin'}>
+                      <i className="fas fa-user-circle mr-1.5 text-slate-500"></i> {adminUser?.name || 'Super Admin'}
+                    </div>
+                    <button onClick={() => { setIsAdminLoggedIn(false); setAdminUser(null); navigate('/admin/login'); }} className="w-full flex items-center justify-center px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg">
+                      <LogOut size={16} className="mr-2"/> Keluar
+                    </button>
+                  </div>
                 </div>
                 <div className="flex-1 flex flex-col h-screen overflow-hidden print:h-auto print:block">
                   <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10 print:hidden shadow-sm">
-                    <div className="flex items-center gap-3"><button className="lg:hidden p-1.5 border rounded" onClick={() => setIsMobileMenuOpen(true)}><Menu size={20}/></button><h2 className="text-xl font-semibold text-slate-800">{title}</h2></div>
-                    <span className="text-xs font-bold px-2.5 py-1 bg-emerald-50 text-emerald-600 border rounded-md flex items-center"><Cloud size={12} className="mr-1"/> Online</span>
+                    <div className="flex items-center gap-3">
+                      <button className="lg:hidden p-1.5 border rounded" onClick={() => setIsMobileMenuOpen(true)}><Menu size={20}/></button>
+                      <h2 className="text-xl font-semibold text-slate-800">{title}</h2>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-md border ${activeAdminRole === 'ADMIN' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                        {activeAdminRole}
+                      </span>
+                      <span className="text-xs font-bold px-2.5 py-1 bg-emerald-50 text-emerald-600 border rounded-md flex items-center"><Cloud size={12} className="mr-1"/> Online</span>
+                    </div>
                   </header>
-                  <main className="flex-1 overflow-y-auto p-6 lg:p-8 print:p-0">{children}</main>
+                  <main className="flex-1 overflow-y-auto p-6 lg:p-8 print:p-0">
+                    {isPageAllowed ? children : (
+                      <div className="max-w-md mx-auto mt-16 bg-white p-8 rounded-2xl border border-rose-200 text-center shadow-sm">
+                        <div className="w-14 h-14 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4"><AlertCircle size={28}/></div>
+                        <h3 className="text-lg font-bold text-slate-800 mb-2">Akses Jendela Dibatasi</h3>
+                        <p className="text-sm text-slate-500 mb-6">Peran <strong>{activeAdminRole}</strong> tidak memiliki izin untuk membuka jendela ini. Hubungi Admin utama jika diperlukan.</p>
+                        {visibleMenu.length > 0 && (
+                          <button onClick={() => navigate(visibleMenu[0].path)} className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">Kembali ke Menu Utama</button>
+                        )}
+                      </div>
+                    )}
+                  </main>
                 </div>
               </div>
             );
@@ -3735,7 +3860,270 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                 </AdminLayout>
              );
           };
+          const AdminAccess = () => {
+            const [localConfig, setLocalConfig] = useState(JSON.parse(JSON.stringify(accessConfig)));
+            const [isSaving, setIsSaving] = useState(false);
+            const [newAcc, setNewAcc] = useState({ name: '', username: '', password: '', role: 'PROKTOR' });
+            const [showPasswords, setShowPasswords] = useState({});
+
+            useEffect(() => {
+              setLocalConfig(JSON.parse(JSON.stringify(accessConfig)));
+            }, [accessConfig]);
+
+            const windowList = [
+              { id: 'dashboard', label: 'Dashboard', desc: 'Statistik ringkas & pengaturan jadwal/logo ujian' },
+              { id: 'questions', label: 'Bank Soal', desc: 'Buat, edit, impor, terbitkan, & hapus soal ujian' },
+              { id: 'tokens', label: 'Token Ujian', desc: 'Kelola folder token, impor peserta, & cetak PDF token' },
+              { id: 'results', label: 'Hasil Ujian', desc: 'Pantau nilai masuk, detail jawaban, & hapus hasil ganda' },
+              { id: 'analysis', label: 'Analisis Soal', desc: 'Tingkat kesukaran butir soal & matriks jawaban siswa' },
+              { id: 'reports', label: 'Cetak Laporan', desc: 'Rekap F4, pelanggaran, ranking sekolah, & progress' },
+              { id: 'access', label: 'Kelola Akses', desc: 'Atur hak akses jendela & daftar akun Admin/Proktor' }
+            ];
+
+            const togglePermission = (role, windowId) => {
+              if (role === 'ADMIN' && windowId === 'access') return; // Kunci agar Admin tidak lockout
+              setLocalConfig(prev => {
+                const current = prev.permissions[role] || [];
+                const updated = current.includes(windowId)
+                  ? current.filter(id => id !== windowId)
+                  : [...current, windowId];
+                return {
+                  ...prev,
+                  permissions: { ...prev.permissions, [role]: updated }
+                };
+              });
+            };
+
+            const saveAccessToSupabase = async (configToSave, successMsg = "Pengaturan akses berhasil disimpan!") => {
+              setIsSaving(true);
+              try {
+                const db = await getSupabase();
+                const code = 'SEC_CFG_ACCESS_99RBAC';
+                const payloadStr = JSON.stringify(configToSave);
+                const { data } = await db.from('tokens').select('code').eq('code', code).maybeSingle();
+                if (data) {
+                  const { error } = await db.from('tokens').update({ status: payloadStr }).eq('code', code);
+                  if (error) throw error;
+                } else {
+                  const { error } = await db.from('tokens').insert([{ code, status: payloadStr, generatedAt: new Date().toISOString(), participant_name: 'SYSTEM_ACCESS_CONFIG' }]);
+                  if (error) throw error;
+                }
+                setAccessConfig(configToSave);
+                await fetchSupabaseData();
+                alert(successMsg);
+              } catch (err) {
+                alert("Gagal menyimpan pengaturan akses: " + err.message);
+              } finally {
+                setIsSaving(false);
+              }
+            };
+
+            const handleAddAccount = async (e) => {
+              e.preventDefault();
+              const uname = newAcc.username.trim().toLowerCase();
+              if (!newAcc.name.trim() || !uname || !newAcc.password.trim()) return alert("Lengkapi semua kolom akun!");
+              if (localConfig.accounts.some(a => a.username.toLowerCase() === uname)) {
+                return alert(`Username "${uname}" sudah digunakan!`);
+              }
+              const updatedConfig = {
+                ...localConfig,
+                accounts: [
+                  ...localConfig.accounts,
+                  { id: `acc_${Date.now()}`, name: newAcc.name.trim(), username: uname, password: newAcc.password.trim(), role: newAcc.role, isSuper: false }
+                ]
+              };
+              setNewAcc({ name: '', username: '', password: '', role: 'PROKTOR' });
+              await saveAccessToSupabase(updatedConfig, `Akun ${newAcc.role} "${uname}" berhasil ditambahkan!`);
+            };
+
+            const handleDeleteAccount = async (acc) => {
+              if (acc.isSuper) return alert("Akun Super Admin tidak dapat dihapus.");
+              if (!confirm(`Hapus akun "${acc.name}" (${acc.username})?`)) return;
+              const updatedConfig = {
+                ...localConfig,
+                accounts: localConfig.accounts.filter(a => a.id !== acc.id)
+              };
+              await saveAccessToSupabase(updatedConfig, "Akun berhasil dihapus.");
+            };
+
+            const handleChangeRole = (accId, newRole) => {
+              setLocalConfig(prev => ({
+                ...prev,
+                accounts: prev.accounts.map(a => a.id === accId ? { ...a, role: newRole } : a)
+              }));
+            };
+
+            const handleChangePassword = (accId) => {
+              const newPass = prompt("Masukkan password baru:");
+              if (!newPass || !newPass.trim()) return;
+              const updatedConfig = {
+                ...localConfig,
+                accounts: localConfig.accounts.map(a => a.id === accId ? { ...a, password: newPass.trim() } : a)
+              };
+              saveAccessToSupabase(updatedConfig, "Password berhasil diperbarui!");
+            };
+
+            return (
+              <AdminLayout title="Kelola Akses & Peran">
+                {/* BAGIAN 1: MATRIKS KELOLA AKSES JENDELA */}
+                <div className="bg-white rounded-xl border shadow-sm p-6 mb-8">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4 mb-5">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-800 flex items-center">
+                        <i className="fas fa-window-restore text-blue-600 mr-2"></i> Kelola Akses Jendela (Admin & Proktor)
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-1">Centang jendela yang diizinkan untuk masing-masing peran, lalu klik Simpan Akses Jendela.</p>
+                    </div>
+                    <button onClick={() => saveAccessToSupabase(localConfig, "Hak akses jendela berhasil disimpan!")} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold flex items-center shadow-sm disabled:opacity-50">
+                      <Save size={16} className="mr-2"/> {isSaving ? 'Menyimpan...' : 'Simpan Akses Jendela'}
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm border-collapse">
+                      <thead className="bg-slate-50 border-b">
+                        <tr>
+                          <th className="p-3.5 text-slate-700 font-bold">Nama Jendela / Menu</th>
+                          <th className="p-3.5 text-slate-700 font-bold hidden md:table-cell">Fungsi Utama</th>
+                          <th className="p-3.5 text-center w-32 text-blue-700 font-bold bg-blue-50/40 border-l">ADMIN</th>
+                          <th className="p-3.5 text-center w-32 text-amber-700 font-bold bg-amber-50/40 border-l">PROKTOR</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {windowList.map(w => {
+                          const adminChecked = (localConfig.permissions?.ADMIN || []).includes(w.id);
+                          const proktorChecked = (localConfig.permissions?.PROKTOR || []).includes(w.id);
+                          const isLockedAdmin = w.id === 'access';
+                          return (
+                            <tr key={w.id} className="border-b hover:bg-slate-50 transition-colors">
+                              <td className="p-3.5 font-bold text-slate-800">
+                                {w.label}
+                                {isLockedAdmin && <span className="ml-2 text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-semibold">Wajib Admin</span>}
+                              </td>
+                              <td className="p-3.5 text-xs text-slate-500 hidden md:table-cell">{w.desc}</td>
+                              <td className="p-3.5 text-center border-l bg-blue-50/20">
+                                <input
+                                  type="checkbox"
+                                  checked={adminChecked}
+                                  disabled={isLockedAdmin}
+                                  onChange={() => togglePermission('ADMIN', w.id)}
+                                  className="w-5 h-5 accent-blue-600 rounded cursor-pointer disabled:opacity-60"
+                                />
+                              </td>
+                              <td className="p-3.5 text-center border-l bg-amber-50/20">
+                                <input
+                                  type="checkbox"
+                                  checked={proktorChecked}
+                                  onChange={() => togglePermission('PROKTOR', w.id)}
+                                  className="w-5 h-5 accent-amber-500 rounded cursor-pointer"
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* BAGIAN 2: KELOLA AKUN ADMIN & PROKTOR */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="bg-white rounded-xl border shadow-sm p-6 h-fit">
+                    <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center">
+                      <Plus size={18} className="mr-2 text-emerald-600"/> Tambah Akun Baru
+                    </h3>
+                    <form onSubmit={handleAddAccount} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap / Sekolah</label>
+                        <input type="text" placeholder="Contoh: Proktor SDN 1" value={newAcc.name} onChange={e => setNewAcc({...newAcc, name: e.target.value})} className="w-full p-2.5 border rounded-lg text-sm" required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1">Username Login</label>
+                        <input type="text" placeholder="Contoh: proktor_sdn1" value={newAcc.username} onChange={e => setNewAcc({...newAcc, username: e.target.value.replace(/\s+/g, '')})} className="w-full p-2.5 border rounded-lg text-sm font-mono" required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1">Password</label>
+                        <input type="text" placeholder="Ketik password..." value={newAcc.password} onChange={e => setNewAcc({...newAcc, password: e.target.value})} className="w-full p-2.5 border rounded-lg text-sm font-mono" required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1">Peran (Role)</label>
+                        <select value={newAcc.role} onChange={e => setNewAcc({...newAcc, role: e.target.value})} className="w-full p-2.5 border rounded-lg text-sm font-bold bg-white">
+                          <option value="PROKTOR">PROKTOR</option>
+                          <option value="ADMIN">ADMIN</option>
+                        </select>
+                      </div>
+                      <button type="submit" disabled={isSaving} className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm shadow-sm disabled:opacity-50">
+                        {isSaving ? 'Memproses...' : 'Tambah Akun'}
+                      </button>
+                    </form>
+                  </div>
+
+                  <div className="lg:col-span-2 bg-white rounded-xl border shadow-sm overflow-hidden">
+                    <div className="p-5 border-b flex justify-between items-center bg-slate-50">
+                      <h3 className="text-base font-bold text-slate-800">Daftar Akun Admin & Proktor ({localConfig.accounts.length})</h3>
+                      <button onClick={() => saveAccessToSupabase(localConfig, "Perubahan peran akun disimpan!")} disabled={isSaving} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-bold">
+                        Simpan Peran
+                      </button>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 border-b text-xs uppercase text-slate-500">
+                          <tr>
+                            <th className="p-4">Nama</th>
+                            <th className="p-4">Username</th>
+                            <th className="p-4">Password</th>
+                            <th className="p-4 text-center">Peran</th>
+                            <th className="p-4 text-center">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {localConfig.accounts.map(acc => (
+                            <tr key={acc.id} className="border-b hover:bg-slate-50">
+                              <td className="p-4 font-bold text-slate-800">
+                                {acc.name}
+                                {acc.isSuper && <span className="ml-2 text-[9px] bg-blue-600 text-white px-1.5 py-0.5 rounded uppercase">Utama</span>}
+                              </td>
+                              <td className="p-4 font-mono text-indigo-600 font-semibold">{acc.username}</td>
+                              <td className="p-4 font-mono text-slate-600">
+                                <div className="flex items-center gap-2">
+                                  <span>{showPasswords[acc.id] ? acc.password : '••••••••'}</span>
+                                  <button type="button" onClick={() => setShowPasswords(prev => ({...prev, [acc.id]: !prev[acc.id]}))} className="text-slate-400 hover:text-slate-700">
+                                    {showPasswords[acc.id] ? <EyeSlash size={14}/> : <Eye size={14}/>}
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="p-4 text-center">
+                                {acc.isSuper ? (
+                                  <span className="px-2.5 py-1 text-[10px] font-bold rounded bg-blue-50 text-blue-700 border border-blue-200">ADMIN</span>
+                                ) : (
+                                  <select value={acc.role} onChange={e => handleChangeRole(acc.id, e.target.value)} className={`p-1.5 border rounded text-xs font-bold cursor-pointer ${acc.role === 'ADMIN' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                    <option value="ADMIN">ADMIN</option>
+                                    <option value="PROKTOR">PROKTOR</option>
+                                  </select>
+                                )}
+                              </td>
+                              <td className="p-4 text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <button onClick={() => handleChangePassword(acc.id)} className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg" title="Ubah Password"><Key size={14}/></button>
+                                  {!acc.isSuper && (
+                                    <button onClick={() => handleDeleteAccount(acc)} className="text-rose-500 bg-rose-50 hover:bg-rose-100 p-2 rounded-lg" title="Hapus Akun"><Trash2 size={14}/></button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </AdminLayout>
+            );
+          };
           switch (currentRoute) {
+            case '/admin/reports': return <AdminReports />;
+            case '/admin/access': return <AdminAccess />;
+            default: return <ParticipantLogin />;
             case '/': case '/login': return <ParticipantLogin />;
             case '/instruction': return <ParticipantInstruction />;
             case '/exam': return <ExamEngine />;
