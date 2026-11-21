@@ -485,7 +485,7 @@
                          token: r.token, score: r.score, startTime: parseInt(r.start_time), endTime: parseInt(r.end_time),
                          detail: { detailedResults: typeof r.detailed_results === 'string' ? JSON.parse(r.detailed_results) : r.detailed_results }, created_at: r.created_at
                       }));
-                      setResults(formattedResults);
+                      setRawResults(formattedResults);
                    }
                 }
                 
