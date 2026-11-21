@@ -352,11 +352,10 @@
 
         function App() {
           const [currentRoute, setCurrentRoute] = useState('/'); 
-          const [tokens, setTokens] = useState([]);
-          const [results, setResults] = useState([]);
+          const [rawTokens, setRawTokens] = useState([]);
+          const [rawResults, setRawResults] = useState([]);
           const [questions, setQuestions] = useState([]);
           const [totalAngkaSoal, setTotalAngkaSoal] = useState(0);
-          const [totalAngkaToken, setTotalAngkaToken] = useState(0);
           
           const [activeFolder, setActiveFolder] = useState('Utama');
           const [organizerName, setOrganizerName] = useState('KKGK Relasi Wonosobo');
@@ -439,14 +438,11 @@
                 
                 if(allTokens) {
                     allTokens.sort((a, b) => new Date(b.generatedAt || 0) - new Date(a.generatedAt || 0));
-                    setTokens(allTokens);
-                    
-                    const jmlPeserta = allTokens.filter(t => !t.code.startsWith('SYS_') && t.status === 'AVAILABLE').length;
-                    setTotalAngkaToken(jmlPeserta);
+                    setRawTokens(allTokens);
                     
                     const fToken = allTokens.find(t => t.code === 'SEC_CFG_FLD_88XQ2');
                     if (fToken) setActiveFolder(fToken.status);
-
+                    
                     const oToken = allTokens.find(t => t.code === 'SEC_CFG_ORG_91MK5');
                     if (oToken) setOrganizerName(oToken.status);
 
