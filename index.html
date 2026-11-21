@@ -394,14 +394,6 @@
               )
             : null;
 
-          // --- BACA PERAN & SEKOLAH SECARA LIVE DARI DATABASE (ANTI CACHE LAMA) ---
-          const liveAccount = adminUser
-            ? (accessConfig?.accounts || []).find(a =>
-                a.id === adminUser.id ||
-                (a.username && adminUser.username && a.username.toLowerCase() === adminUser.username.toLowerCase())
-              )
-            : null;
-
           const activeAdminRole = liveAccount?.role || adminUser?.role || 'ADMIN';
           const isSuperAdmin = liveAccount ? !!liveAccount.isSuper : (adminUser ? !!adminUser.isSuper : true);
 
