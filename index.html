@@ -3875,15 +3875,105 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                 </AdminLayout>
              );
           };
+          const SearchableSchoolSelect = ({ value, onChange, options, placeholder = "Pilih Sekolah..." }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const [search, setSearch] = useState('');
+            const containerRef = React.useRef(null);
+
+            React.useEffect(() => {
+              const handleClickOutside = (e) => {
+                if (containerRef.current && !containerRef.current.contains(e.target)) {
+                  setIsOpen(false);
+                }
+              };
+              document.addEventListener('mousedown', handleClickOutside);
+              return () => document.removeEventListener('mousedown', handleClickOutside);
+            }, []);
+
+            const filteredOptions = options.filter(opt =>
+              opt.toLowerCase().includes(search.toLowerCase())
+            );
+
+            const displayLabel = !value || value === 'Semua' ? 'Semua Sekolah (Akses Penuh)' : value;
+
+            return (
+              <div ref={containerRef} className="relative w-full">
+                <button
+                  type="button"
+                  onClick={() => { setIsOpen(!isOpen); setSearch(''); }}
+                  className="w-full p-2.5 border border-slate-300 bg-white rounded-lg text-sm font-semibold text-slate-800 flex items-center justify-between gap-2 text-left hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-colors"
+                  title={displayLabel}
+                >
+                  <span className={`truncate ${!value || value === 'Semua' ? 'text-slate-500' : 'text-blue-700'}`}>
+                    {displayLabel}
+                  </span>
+                  <i className={`fas fa-chevron-down text-xs text-slate-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}></i>
+                </button>
+
+                {isOpen && (
+                  <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-300 rounded-xl shadow-xl z-50 overflow-hidden min-w-[230px]">
+                    <div className="p-2 border-b bg-slate-50 sticky top-0">
+                      <div className="relative">
+                        <i className="fas fa-search absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+                        <input
+                          type="text"
+                          autoFocus
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                          placeholder="Ketik nama sekolah..."
+                          className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg outline-none focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <div className="max-h-56 overflow-y-auto divide-y divide-slate-100">
+                      {('semua sekolah akses penuh'.includes(search.toLowerCase())) && (
+                        <button
+                          type="button"
+                          onClick={() => { onChange('Semua'); setIsOpen(false); setSearch(''); }}
+                          className={`w-full text-left px-3 py-2 text-xs font-bold hover:bg-blue-50 transition-colors flex items-center justify-between ${(!value || value === 'Semua') ? 'bg-blue-50 text-blue-700' : 'text-slate-700'}`}
+                        >
+                          <span>Semua Sekolah (Akses Penuh)</span>
+                          {(!value || value === 'Semua') && <i className="fas fa-check text-blue-600"></i>}
+                        </button>
+                      )}
+                      {filteredOptions.map((sch) => (
+                        <button
+                          key={sch}
+                          type="button"
+                          onClick={() => { onChange(sch); setIsOpen(false); setSearch(''); }}
+                          className={`w-full text-left px-3 py-2 text-xs font-medium hover:bg-blue-50 transition-colors flex items-center justify-between ${value === sch ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700'}`}
+                        >
+                          <span className="truncate pr-2">{sch}</span>
+                          {value === sch && <i className="fas fa-check text-blue-600 shrink-0"></i>}
+                        </button>
+                      ))}
+                      {filteredOptions.length === 0 && !('semua sekolah akses penuh'.includes(search.toLowerCase())) && (
+                        <div className="px-3 py-4 text-center text-xs text-slate-400 italic">
+                          Sekolah "{search}" tidak ditemukan.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          };
+
           const AdminAccess = () => {
             const [localConfig, setLocalConfig] = useState(JSON.parse(JSON.stringify(accessConfig)));
             const [isSaving, setIsSaving] = useState(false);
-            const [newAcc, setNewAcc] = useState({ name: '', username: '', password: '', role: 'PROKTOR' });
+            const [newAcc, setNewAcc] = useState({ name: '', username: '', password: '', role: 'PROKTOR', school: 'Semua' });
             const [showPasswords, setShowPasswords] = useState({});
 
-            useEffect(() => {
+            React.useEffect(() => {
               setLocalConfig(JSON.parse(JSON.stringify(accessConfig)));
             }, [accessConfig]);
+
+            // Ambil daftar seluruh sekolah unik dari Token & Hasil Ujian
+            const allAvailableSchools = [...new Set([
+              ...rawTokens.filter(t => t.code && !t.code.startsWith('SYS_') && !t.code.startsWith('SEC_CFG_')).map(t => (t.participant_school || '').trim()),
+              ...rawResults.map(r => (r.participant?.school || '').trim())
+            ].filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
             const windowList = [
               { id: 'dashboard', label: 'Dashboard', desc: 'Statistik ringkas & pengaturan jadwal/logo ujian' },
@@ -3896,7 +3986,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
             ];
 
             const togglePermission = (role, windowId) => {
-              if (role === 'ADMIN' && windowId === 'access') return; // Kunci agar Admin tidak lockout
+              if (role === 'ADMIN' && windowId === 'access') return;
               setLocalConfig(prev => {
                 const current = prev.permissions[role] || [];
                 const updated = current.includes(windowId)
@@ -3940,15 +4030,16 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
               if (localConfig.accounts.some(a => a.username.toLowerCase() === uname)) {
                 return alert(`Username "${uname}" sudah digunakan!`);
               }
+              const assignedSchool = newAcc.role === 'ADMIN' ? 'Semua' : (newAcc.school || 'Semua');
               const updatedConfig = {
                 ...localConfig,
                 accounts: [
                   ...localConfig.accounts,
-                  { id: `acc_${Date.now()}`, name: newAcc.name.trim(), username: uname, password: newAcc.password.trim(), role: newAcc.role, isSuper: false }
+                  { id: `acc_${Date.now()}`, name: newAcc.name.trim(), username: uname, password: newAcc.password.trim(), role: newAcc.role, school: assignedSchool, isSuper: false }
                 ]
               };
-              setNewAcc({ name: '', username: '', password: '', role: 'PROKTOR' });
-              await saveAccessToSupabase(updatedConfig, `Akun ${newAcc.role} "${uname}" berhasil ditambahkan!`);
+              setNewAcc({ name: '', username: '', password: '', role: 'PROKTOR', school: 'Semua' });
+              await saveAccessToSupabase(updatedConfig, `Akun ${newAcc.role} "${uname}" (${assignedSchool}) berhasil ditambahkan!`);
             };
 
             const handleDeleteAccount = async (acc) => {
@@ -3964,7 +4055,14 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
             const handleChangeRole = (accId, newRole) => {
               setLocalConfig(prev => ({
                 ...prev,
-                accounts: prev.accounts.map(a => a.id === accId ? { ...a, role: newRole } : a)
+                accounts: prev.accounts.map(a => a.id === accId ? { ...a, role: newRole, school: newRole === 'ADMIN' ? 'Semua' : (a.school || 'Semua') } : a)
+              }));
+            };
+
+            const handleChangeSchool = (accId, newSchool) => {
+              setLocalConfig(prev => ({
+                ...prev,
+                accounts: prev.accounts.map(a => a.id === accId ? { ...a, school: newSchool } : a)
               }));
             };
 
@@ -4041,15 +4139,15 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                   </div>
                 </div>
 
-                {/* BAGIAN 2: KELOLA AKUN ADMIN & PROKTOR */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="bg-white rounded-xl border shadow-sm p-6 h-fit">
+                {/* BAGIAN 2: KELOLA AKUN ADMIN & PROKTOR PER SEKOLAH */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                  <div className="bg-white rounded-xl border shadow-sm p-6">
                     <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center">
                       <Plus size={18} className="mr-2 text-emerald-600"/> Tambah Akun Baru
                     </h3>
                     <form onSubmit={handleAddAccount} className="space-y-4">
                       <div>
-                        <label className="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap / Sekolah</label>
+                        <label className="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap / Jabatan</label>
                         <input type="text" placeholder="Contoh: Proktor SDN 1" value={newAcc.name} onChange={e => setNewAcc({...newAcc, name: e.target.value})} className="w-full p-2.5 border rounded-lg text-sm" required />
                       </div>
                       <div>
@@ -4062,25 +4160,36 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-slate-600 mb-1">Peran (Role)</label>
-                        <select value={newAcc.role} onChange={e => setNewAcc({...newAcc, role: e.target.value})} className="w-full p-2.5 border rounded-lg text-sm font-bold bg-white">
+                        <select value={newAcc.role} onChange={e => setNewAcc({...newAcc, role: e.target.value, school: e.target.value === 'ADMIN' ? 'Semua' : newAcc.school})} className="w-full p-2.5 border rounded-lg text-sm font-bold bg-white">
                           <option value="PROKTOR">PROKTOR</option>
                           <option value="ADMIN">ADMIN</option>
                         </select>
                       </div>
+                      {newAcc.role === 'PROKTOR' && (
+                        <div>
+                          <label className="block text-xs font-bold text-slate-600 mb-1">Akses Sekolah (Ketik untuk Mencari)</label>
+                          <SearchableSchoolSelect
+                            value={newAcc.school}
+                            onChange={(sch) => setNewAcc({...newAcc, school: sch})}
+                            options={allAvailableSchools}
+                          />
+                          <p className="text-[11px] text-slate-400 mt-1">Proktor hanya akan melihat data dari sekolah yang dipilih.</p>
+                        </div>
+                      )}
                       <button type="submit" disabled={isSaving} className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm shadow-sm disabled:opacity-50">
                         {isSaving ? 'Memproses...' : 'Tambah Akun'}
                       </button>
                     </form>
                   </div>
 
-                  <div className="lg:col-span-2 bg-white rounded-xl border shadow-sm overflow-hidden">
-                    <div className="p-5 border-b flex justify-between items-center bg-slate-50">
+                  <div className="lg:col-span-2 bg-white rounded-xl border shadow-sm">
+                    <div className="p-5 border-b flex justify-between items-center bg-slate-50 rounded-t-xl">
                       <h3 className="text-base font-bold text-slate-800">Daftar Akun Admin & Proktor ({localConfig.accounts.length})</h3>
-                      <button onClick={() => saveAccessToSupabase(localConfig, "Perubahan peran akun disimpan!")} disabled={isSaving} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-bold">
-                        Simpan Peran
+                      <button onClick={() => saveAccessToSupabase(localConfig, "Perubahan peran & akses sekolah disimpan!")} disabled={isSaving} className="text-xs bg-blue-600 text-white hover:bg-blue-700 px-3.5 py-2 rounded-lg font-bold shadow-sm disabled:opacity-50">
+                        <Save size={12} className="inline mr-1.5"/> Simpan Perubahan Akun
                       </button>
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto min-h-[340px]">
                       <table className="w-full text-left text-sm">
                         <thead className="bg-slate-50 border-b text-xs uppercase text-slate-500">
                           <tr>
@@ -4088,18 +4197,19 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                             <th className="p-4">Username</th>
                             <th className="p-4">Password</th>
                             <th className="p-4 text-center">Peran</th>
+                            <th className="p-4 min-w-[230px]">Akses Sekolah</th>
                             <th className="p-4 text-center">Aksi</th>
                           </tr>
                         </thead>
                         <tbody>
                           {localConfig.accounts.map(acc => (
                             <tr key={acc.id} className="border-b hover:bg-slate-50">
-                              <td className="p-4 font-bold text-slate-800">
+                              <td className="p-4 font-bold text-slate-800 whitespace-nowrap">
                                 {acc.name}
                                 {acc.isSuper && <span className="ml-2 text-[9px] bg-blue-600 text-white px-1.5 py-0.5 rounded uppercase">Utama</span>}
                               </td>
-                              <td className="p-4 font-mono text-indigo-600 font-semibold">{acc.username}</td>
-                              <td className="p-4 font-mono text-slate-600">
+                              <td className="p-4 font-mono text-indigo-600 font-semibold whitespace-nowrap">{acc.username}</td>
+                              <td className="p-4 font-mono text-slate-600 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
                                   <span>{showPasswords[acc.id] ? acc.password : '••••••••'}</span>
                                   <button type="button" onClick={() => setShowPasswords(prev => ({...prev, [acc.id]: !prev[acc.id]}))} className="text-slate-400 hover:text-slate-700">
@@ -4115,6 +4225,17 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                                     <option value="ADMIN">ADMIN</option>
                                     <option value="PROKTOR">PROKTOR</option>
                                   </select>
+                                )}
+                              </td>
+                              <td className="p-4">
+                                {acc.isSuper || acc.role === 'ADMIN' ? (
+                                  <span className="text-xs font-semibold text-slate-400">Semua Sekolah</span>
+                                ) : (
+                                  <SearchableSchoolSelect
+                                    value={acc.school || 'Semua'}
+                                    onChange={(sch) => handleChangeSchool(acc.id, sch)}
+                                    options={allAvailableSchools}
+                                  />
                                 )}
                               </td>
                               <td className="p-4 text-center">
