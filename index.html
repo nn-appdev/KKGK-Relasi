@@ -394,7 +394,26 @@
             const allowed = accessConfig?.permissions?.[activeAdminRole] || [];
             return allowed.includes(menuId);
           };
+// --- MESIN FILTER DATA PER SEKOLAH UNTUK PROKTOR ---
+          const proktorSchool = (!isSuperAdmin && activeAdminRole === 'PROKTOR' && adminUser?.school && adminUser.school !== 'Semua')
+            ? adminUser.school.trim()
+            : null;
 
+          const isSchoolMatch = (schoolName) => {
+            if (!proktorSchool) return true;
+            return String(schoolName || '').trim().toUpperCase() === proktorSchool.toUpperCase();
+          };
+
+          const tokens = proktorSchool
+            ? rawTokens.filter(t => (t.code && (t.code.startsWith('SYS_') || t.code.startsWith('SEC_CFG_'))) || isSchoolMatch(t.participant_school))
+            : rawTokens;
+
+          const results = proktorSchool
+            ? rawResults.filter(r => isSchoolMatch(r.participant?.school))
+            : rawResults;
+
+          const totalAngkaToken = tokens.filter(t => t.code && !t.code.startsWith('SYS_') && !t.code.startsWith('SEC_CFG_') && t.status === 'AVAILABLE').length;
+            
           const navigate = (path) => { window.scrollTo(0,0); setCurrentRoute(path); };
 
           const fetchSupabaseData = async () => {
