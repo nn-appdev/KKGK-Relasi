@@ -386,17 +386,35 @@
           const [adminUser, setAdminUser] = useStickySession(null, 'cbt_admin_user');
           const [accessConfig, setAccessConfig] = useState(DEFAULT_ACCESS_CONFIG);
 
-          const activeAdminRole = adminUser?.role || 'ADMIN';
-          const isSuperAdmin = adminUser ? !!adminUser.isSuper : true;
+          // --- BACA PERAN & SEKOLAH SECARA LIVE DARI DATABASE (ANTI CACHE LAMA) ---
+          const liveAccount = adminUser
+            ? (accessConfig?.accounts || []).find(a =>
+                a.id === adminUser.id ||
+                (a.username && adminUser.username && a.username.toLowerCase() === adminUser.username.toLowerCase())
+              )
+            : null;
+
+          // --- BACA PERAN & SEKOLAH SECARA LIVE DARI DATABASE (ANTI CACHE LAMA) ---
+          const liveAccount = adminUser
+            ? (accessConfig?.accounts || []).find(a =>
+                a.id === adminUser.id ||
+                (a.username && adminUser.username && a.username.toLowerCase() === adminUser.username.toLowerCase())
+              )
+            : null;
+
+          const activeAdminRole = liveAccount?.role || adminUser?.role || 'ADMIN';
+          const isSuperAdmin = liveAccount ? !!liveAccount.isSuper : (adminUser ? !!adminUser.isSuper : true);
 
           const hasAccess = (menuId) => {
             if (isSuperAdmin) return true;
             const allowed = accessConfig?.permissions?.[activeAdminRole] || [];
             return allowed.includes(menuId);
           };
-// --- MESIN FILTER DATA PER SEKOLAH UNTUK PROKTOR ---
-          const proktorSchool = (!isSuperAdmin && activeAdminRole === 'PROKTOR' && adminUser?.school && adminUser.school !== 'Semua')
-            ? adminUser.school.trim()
+
+          // --- MESIN FILTER DATA PER SEKOLAH UNTUK PROKTOR ---
+          const effectiveSchool = String(liveAccount?.school || adminUser?.school || 'Semua').trim();
+          const proktorSchool = (!isSuperAdmin && activeAdminRole === 'PROKTOR' && effectiveSchool !== '' && effectiveSchool.toLowerCase() !== 'semua')
+            ? effectiveSchool
             : null;
 
           const isSchoolMatch = (schoolName) => {
@@ -413,8 +431,6 @@
             : rawResults;
 
           const totalAngkaToken = tokens.filter(t => t.code && !t.code.startsWith('SYS_') && !t.code.startsWith('SEC_CFG_') && t.status === 'AVAILABLE').length;
-            
-          const navigate = (path) => { window.scrollTo(0,0); setCurrentRoute(path); };
 
           const fetchSupabaseData = async () => {
              setIsLoadingData(true);
@@ -1123,7 +1139,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                 return;
               }
 
-              setAdminUser({ id: loggedUser.id, name: loggedUser.name, username: loggedUser.username, role: loggedUser.role, isSuper: !!loggedUser.isSuper });
+              setAdminUser({ id: loggedUser.id, name: loggedUser.name, username: loggedUser.username, role: loggedUser.role, school: loggedUser.school || 'Semua', isSuper: !!loggedUser.isSuper });
               setIsAdminLoggedIn(true);
 
               const routeMap = [
@@ -1220,7 +1236,7 @@ const CountdownTimer = React.memo(({ activeSession, onTimeUp }) => {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`text-xs font-bold px-2.5 py-1 rounded-md border ${activeAdminRole === 'ADMIN' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                        {activeAdminRole}
+                        {proktorSchool ? `${activeAdminRole} • ${proktorSchool}` : activeAdminRole}
                       </span>
                       <span className="text-xs font-bold px-2.5 py-1 bg-emerald-50 text-emerald-600 border rounded-md flex items-center"><Cloud size={12} className="mr-1"/> Online</span>
                     </div>
